@@ -1,4 +1,5 @@
 import { getNightCount, getStayDates } from '../../../shared/types/reservation'
+import { calculatePriceQuote } from '../../../shared/utils/pricing'
 import { getAvailableQuantity } from './rules'
 import {
   findRoomType,
@@ -29,9 +30,18 @@ export async function getAvailability(
       input.checkInDate,
       input.checkOutDate,
     )
-    return { maxGuests: roomType.maxGuests, rows }
+    return {
+      maxGuests: roomType.maxGuests,
+      nightlyPrice: roomType.nightlyPrice,
+      rows,
+    }
   })
-  return summarizeAvailability(input, inventory.rows, inventory.maxGuests)
+  return summarizeAvailability(
+    input,
+    inventory.rows,
+    inventory.maxGuests,
+    inventory.nightlyPrice,
+  )
 }
 
 type InventoryRow = {
@@ -50,6 +60,7 @@ export function summarizeAvailability(
   },
   inventory: InventoryRow[],
   maxGuests = Number.POSITIVE_INFINITY,
+  nightlyPrice: number,
 ) {
   const nights = getNightCount(input)
   const inventoryReady = inventory.length === nights
@@ -76,5 +87,10 @@ export function summarizeAvailability(
       availableQuantity >= input.quantity &&
       (input.guests ?? 1) <= maxGuests,
     inventoryReady,
+    price: calculatePriceQuote({
+      nightlyPrice,
+      nights,
+      quantity: input.quantity,
+    }),
   }
 }

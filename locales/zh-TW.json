@@ -53,6 +53,7 @@
     "guests": "入住人數",
     "guestUnit": "位旅客",
     "submit": "搜尋房間",
+    "loading": "查詢中…",
     "errors": {
       "dateRange": "請選擇有效的入住與退房日期。",
       "unavailable": "目前無法查詢房況，請稍後再試。"
@@ -68,9 +69,12 @@
     "area": "{size} 平方公尺",
     "beds": "{count} 張床",
     "guests": "{count} 位旅客",
+    "pricePerNight": "每晚 {price}",
+    "stayTotal": "住宿總額 {price}",
     "choose": "查看房型",
     "available": "有空房",
     "unavailable": "暫無空房",
+    "empty": "這段日期目前沒有可預訂的房間，請試試其他日期。",
     "standard": {
       "name": "日光房",
       "description": "讓晨光叫你起床的房間，簡單而剛好。"
@@ -94,6 +98,10 @@
     "name": "姓名",
     "email": "Email",
     "submit": "保留房間",
+    "loading": "保留中…",
+    "errors": {
+      "required": "請填寫姓名與 Email。"
+    },
     "success": "房間已保留，請於期限內完成付款。",
     "expiresIn": "剩餘 {time}",
     "confirm": "確認訂房",

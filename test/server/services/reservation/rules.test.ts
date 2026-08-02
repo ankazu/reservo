@@ -7,6 +7,7 @@ import {
   getStayDates,
 } from '../../../../server/services/reservation/rules'
 import { summarizeAvailability } from '../../../../server/services/reservation/availability'
+import { calculatePriceQuote } from '../../../../shared/utils/pricing'
 
 describe('reservation rules', () => {
   it('counts nights using a half-open date range', () => {
@@ -23,6 +24,31 @@ describe('reservation rules', () => {
 
   it('calculates availability from inventory quantities', () => {
     expect(getAvailableQuantity(5, 2, 1)).toBe(2)
+  })
+
+  it('calculates an integer TWD quote from nights and quantity', () => {
+    expect(
+      calculatePriceQuote({ nightlyPrice: 4200, nights: 3, quantity: 2 }),
+    ).toEqual({
+      currency: 'TWD',
+      nightlyPrice: 4200,
+      subtotal: 25200,
+      taxes: 0,
+      discounts: 0,
+      total: 25200,
+    })
+  })
+
+  it('applies integer taxes and discounts without floating point arithmetic', () => {
+    expect(
+      calculatePriceQuote({
+        nightlyPrice: 5800,
+        nights: 2,
+        quantity: 1,
+        taxes: 500,
+        discounts: 1000,
+      }).total,
+    ).toBe(11100)
   })
 
   it('allows only documented reservation transitions', () => {
@@ -59,6 +85,7 @@ describe('reservation rules', () => {
         },
       ],
       2,
+      4200,
     )
 
     expect(result.nights).toBe(2)
@@ -81,6 +108,8 @@ describe('reservation rules', () => {
           blockedQuantity: 0,
         },
       ],
+      Number.POSITIVE_INFINITY,
+      4200,
     )
 
     expect(result.inventoryReady).toBe(false)
@@ -110,6 +139,7 @@ describe('reservation rules', () => {
         },
       ],
       2,
+      8600,
     )
 
     expect(result.inventoryReady).toBe(true)

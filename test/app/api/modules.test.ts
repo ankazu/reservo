@@ -29,6 +29,14 @@ describe('availability API module', () => {
         availableQuantity: 2,
         available: true,
         inventoryReady: true,
+        price: {
+          currency: 'TWD',
+          nightlyPrice: 4200,
+          subtotal: 8400,
+          taxes: 0,
+          discounts: 0,
+          total: 8400,
+        },
       },
     })
 

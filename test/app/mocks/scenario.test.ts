@@ -21,7 +21,10 @@ describe('mock scenarios', () => {
 
     expect(response).toMatchObject({
       success: true,
-      data: { nights: 3 },
+      data: {
+        nights: 3,
+        price: { nightlyPrice: 4200, subtotal: 12600, total: 12600 },
+      },
     })
   })
 

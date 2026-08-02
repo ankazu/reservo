@@ -15,11 +15,20 @@ const formError = ref('')
 const selectedRoomId = ref<string | null>(null)
 const guestName = ref('')
 const guestEmail = ref('')
+const reservationFormError = ref('')
 const reservationStore = useReservationStore()
 const propertyId = '00000000-0000-4000-8000-000000000001'
 const now = ref(Date.now())
 let expiryTimer: ReturnType<typeof setInterval> | undefined
 let expirationRequestId: string | null = null
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat(locale.value === 'zh-TW' ? 'zh-TW' : 'en-US', {
+    style: 'currency',
+    currency: 'TWD',
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
 
 const reservationSecondsRemaining = computed(() => {
   const expiresAt = reservationStore.currentReservation?.expiresAt
@@ -100,6 +109,7 @@ async function submitSearch() {
   formError.value = ''
   hasSearched.value = false
   selectedRoomId.value = null
+  reservationFormError.value = ''
   reservationStore.clearReservation()
   reservationStore.clearAvailability()
   if (!checkIn.value || !checkOut.value || checkOut.value <= checkIn.value) {
@@ -132,6 +142,7 @@ function selectRoom(roomId: string) {
   if (!hasSearched.value) return
   if (!reservationStore.availabilityByRoomTypeId[roomId]?.available) return
   selectedRoomId.value = roomId
+  reservationFormError.value = ''
 }
 
 onBeforeUnmount(reservationStore.cancelAvailability)
@@ -145,7 +156,12 @@ onBeforeUnmount(() => {
 })
 
 async function createHold() {
-  if (!selectedRoomId.value || !guestName.value || !guestEmail.value) return
+  reservationFormError.value = ''
+  if (!selectedRoomId.value) return
+  if (!guestName.value.trim() || !guestEmail.value.trim()) {
+    reservationFormError.value = t('reservation.errors.required')
+    return
+  }
   await reservationStore.createHold({
     propertyId,
     roomTypeId: selectedRoomId.value,
@@ -153,8 +169,8 @@ async function createHold() {
     checkOutDate: checkOut.value,
     quantity: 1,
     guests: guests.value,
-    guestName: guestName.value,
-    guestEmail: guestEmail.value,
+    guestName: guestName.value.trim(),
+    guestEmail: guestEmail.value.trim(),
     ratePlanName: 'Standard',
   })
 }
@@ -262,6 +278,7 @@ async function retryExpiration() {
       </div>
       <form
         class="grid grid-cols-2 gap-3 md:grid-cols-[repeat(3,1fr)_auto]"
+        :aria-busy="reservationStore.isAvailabilityLoading"
         @submit.prevent="submitSearch"
       >
         <label
@@ -304,8 +321,16 @@ async function retryExpiration() {
         <button
           class="col-span-2 self-end bg-clay px-5 py-3 text-white transition hover:bg-[#ad593b] md:col-span-1"
           type="submit"
+          :disabled="reservationStore.isAvailabilityLoading"
         >
-          {{ t('search.submit') }} <span class="ml-3">↗</span>
+          {{
+            reservationStore.isAvailabilityLoading
+              ? t('search.loading')
+              : t('search.submit')
+          }}
+          <span v-if="!reservationStore.isAvailabilityLoading" class="ml-3"
+            >↗</span
+          >
         </button>
       </form>
       <p
@@ -380,6 +405,31 @@ async function retryExpiration() {
               {{ t(`rooms.${room.key}.description`) }}
             </p>
             <div
+              v-if="reservationStore.availabilityByRoomTypeId[room.roomTypeId]"
+              class="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-clay"
+            >
+              <span>
+                {{
+                  t('rooms.pricePerNight', {
+                    price: formatCurrency(
+                      reservationStore.availabilityByRoomTypeId[room.roomTypeId]
+                        .price.nightlyPrice,
+                    ),
+                  })
+                }}
+              </span>
+              <span>
+                {{
+                  t('rooms.stayTotal', {
+                    price: formatCurrency(
+                      reservationStore.availabilityByRoomTypeId[room.roomTypeId]
+                        .price.total,
+                    ),
+                  })
+                }}
+              </span>
+            </div>
+            <div
               class="flex gap-3 border-t border-stone-300 pt-4 text-[10px] text-moss"
             >
               <span>{{ t('rooms.area', { size: room.size }) }}</span
@@ -407,31 +457,76 @@ async function retryExpiration() {
           </div>
         </article>
       </div>
+      <p
+        v-if="
+          hasSearched &&
+          !reservationStore.isAvailabilityLoading &&
+          !rooms.some(
+            (room) =>
+              reservationStore.availabilityByRoomTypeId[room.roomTypeId]
+                ?.available,
+          )
+        "
+        class="mt-8 border border-stone-300 bg-[#eeece5] p-5 text-sm text-moss"
+        role="status"
+      >
+        {{ t('rooms.empty') }}
+      </p>
       <form
         v-if="selectedRoomId"
         class="mt-8 grid gap-3 border border-stone-300 bg-[#eeece5] p-5 md:grid-cols-[1fr_1fr_auto]"
         @submit.prevent="createHold"
       >
-        <input
-          v-model="guestName"
-          :placeholder="t('reservation.name')"
-          required
-          class="border-b border-stone-300 bg-transparent p-2 outline-none"
-        />
-        <input
-          v-model="guestEmail"
-          :placeholder="t('reservation.email')"
-          type="email"
-          required
-          class="border-b border-stone-300 bg-transparent p-2 outline-none"
-        />
+        <p
+          v-if="reservationStore.availabilityByRoomTypeId[selectedRoomId]"
+          class="col-span-full text-sm text-moss"
+        >
+          {{
+            t('rooms.stayTotal', {
+              price: formatCurrency(
+                reservationStore.availabilityByRoomTypeId[selectedRoomId].price
+                  .total,
+              ),
+            })
+          }}
+        </p>
+        <label class="flex flex-col gap-1 text-xs text-moss">
+          {{ t('reservation.name') }}
+          <input
+            v-model="guestName"
+            required
+            autocomplete="name"
+            class="border-b border-stone-300 bg-transparent p-2 text-sm text-ink outline-none"
+          />
+        </label>
+        <label class="flex flex-col gap-1 text-xs text-moss">
+          {{ t('reservation.email') }}
+          <input
+            v-model="guestEmail"
+            type="email"
+            required
+            autocomplete="email"
+            class="border-b border-stone-300 bg-transparent p-2 text-sm text-ink outline-none"
+          />
+        </label>
         <button
           type="submit"
           class="bg-clay px-5 py-3 text-white"
           :disabled="reservationStore.isLoading"
         >
-          {{ t('reservation.submit') }}
+          {{
+            reservationStore.isLoading
+              ? t('reservation.loading')
+              : t('reservation.submit')
+          }}
         </button>
+        <p
+          v-if="reservationFormError"
+          class="col-span-full text-xs text-clay"
+          role="alert"
+        >
+          {{ reservationFormError }}
+        </p>
       </form>
       <div
         v-if="reservationStore.currentReservation"

@@ -1,3 +1,5 @@
+import type { PriceQuote } from '../utils/pricing'
+
 export type ReservationSearchInput = {
   roomTypeId: string
   checkInDate: string
@@ -14,4 +16,5 @@ export type AvailabilityResponse = {
   availableQuantity: number
   available: boolean
   inventoryReady: boolean
+  price: PriceQuote
 }

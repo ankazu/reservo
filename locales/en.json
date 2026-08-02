@@ -53,6 +53,7 @@
     "guests": "Guests",
     "guestUnit": "guests",
     "submit": "Search rooms",
+    "loading": "Searching…",
     "errors": {
       "dateRange": "Please choose a valid check-in and check-out date.",
       "unavailable": "Availability is temporarily unavailable. Please try again."
@@ -68,9 +69,12 @@
     "area": "{size} m²",
     "beds": "{count} beds",
     "guests": "{count} guests",
+    "pricePerNight": "{price} / night",
+    "stayTotal": "Stay total {price}",
     "choose": "View room",
     "available": "Available",
     "unavailable": "Unavailable",
+    "empty": "No rooms are available for these dates. Try another stay.",
     "standard": {
       "name": "Sunroom",
       "description": "A simple, just-right room where the morning light wakes you."
@@ -94,6 +98,10 @@
     "name": "Name",
     "email": "Email",
     "submit": "Hold room",
+    "loading": "Holding room…",
+    "errors": {
+      "required": "Please enter your name and email."
+    },
     "success": "Your room is held. Please complete payment before it expires.",
     "expiresIn": "{time} remaining",
     "confirm": "Confirm reservation",

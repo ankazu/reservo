@@ -5,6 +5,7 @@ import type {
 } from '~~/shared/types/availability'
 import type { MockScenario } from './scenario'
 import { getNightCount } from '~~/shared/types/reservation'
+import { calculatePriceQuote } from '~~/shared/utils/pricing'
 
 export function createAvailabilityMock(scenario: MockScenario) {
   return async function getAvailability(
@@ -24,6 +25,11 @@ export function createAvailabilityMock(scenario: MockScenario) {
     }
 
     const available = scenario !== 'insufficient-inventory'
+    const nightlyPrice = input.roomTypeId.endsWith('102')
+      ? 5800
+      : input.roomTypeId.endsWith('103')
+        ? 8600
+        : 4200
     return {
       success: true,
       data: {
@@ -34,6 +40,11 @@ export function createAvailabilityMock(scenario: MockScenario) {
         availableQuantity: available ? 3 : 0,
         available,
         inventoryReady: true,
+        price: calculatePriceQuote({
+          nightlyPrice,
+          nights: getNightCount(input),
+          quantity: input.quantity,
+        }),
       },
     }
   }
