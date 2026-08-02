@@ -7,6 +7,8 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
@@ -14,5 +16,10 @@
     "nuxt": "^4.5.1",
     "vue": "^3.5.40",
     "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1"
   }
 }

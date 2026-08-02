@@ -1,4 +1,6 @@
 <template>
   <NuxtRouteAnnouncer />
-  <NuxtPage />
+  <div class="app-shell">
+    <NuxtPage />
+  </div>
 </template>

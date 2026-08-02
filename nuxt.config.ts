@@ -2,7 +2,8 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/i18n'],
+  css: ['~/assets/css/main.css'],
+  modules: ['@nuxtjs/i18n', '@nuxtjs/tailwindcss'],
   i18n: {
     defaultLocale: 'zh-TW',
     strategy: 'prefix_except_default',
@@ -12,8 +13,8 @@ export default defineNuxtConfig({
         code: 'zh-TW',
         language: 'zh-TW',
         file: 'zh-TW.json',
-        name: '繁體中文'
-      }
-    ]
-  }
+        name: '繁體中文',
+      },
+    ],
+  },
 })

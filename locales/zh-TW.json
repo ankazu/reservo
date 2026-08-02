@@ -2,5 +2,59 @@
   "app": {
     "name": "Reservo 訂房系統",
     "description": "訂房系統 MVP 開發中"
+  },
+  "navigation": {
+    "label": "主要導覽",
+    "rooms": "房型",
+    "story": "關於 Reservo",
+    "contact": "聯絡我們",
+    "language": "切換語言"
+  },
+  "hero": {
+    "eyebrow": "A softer way to stay",
+    "title": "住進一段",
+    "titleAccent": "剛剛好的日子",
+    "description": "在城市與自然之間，留一點空白給自己。Reservo 為你保留一間安靜、舒服的房間。"
+  },
+  "search": {
+    "eyebrow": "Find your stay",
+    "title": "選一個你想醒來的日子",
+    "checkIn": "入住",
+    "checkOut": "退房",
+    "guests": "入住人數",
+    "guestUnit": "位旅客",
+    "submit": "搜尋房間",
+    "errors": { "dateRange": "請選擇有效的入住與退房日期。" },
+    "success": "已找到適合 {{guests}} 位旅客的房間。"
+  },
+  "rooms": {
+    "eyebrow": "The rooms",
+    "title": "今天，住哪裡？",
+    "description": "每一間房都有自己的光線、氣味與節奏。挑一間，讓旅程從睡個好覺開始。",
+    "night": "晚",
+    "bed": "張床",
+    "choose": "查看房型",
+    "standard": {
+      "name": "日光房",
+      "description": "讓晨光叫你起床的房間，簡單而剛好。"
+    },
+    "garden": {
+      "name": "庭院房",
+      "description": "推開窗就是綠意，適合慢慢生活幾天。"
+    },
+    "suite": {
+      "name": "留白套房",
+      "description": "多一點空間，多一點不被打擾的時間。"
+    }
+  },
+  "story": {
+    "eyebrow": "Our point of view",
+    "title": "不是每趟旅行，都需要一個行程。",
+    "description": "我們相信好的住宿不會搶走旅程的主角位置。它只是在你回到房間時，剛好有一盞燈、一張舒服的床，和一點可以呼吸的空間。",
+    "note": "一間房 · 一種貨幣 · 好好住一晚"
+  },
+  "footer": {
+    "address": "台灣・台北",
+    "rights": "© 2026 Reservo"
   }
 }
