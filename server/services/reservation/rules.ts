@@ -1,4 +1,4 @@
-import { getNightCount } from '../../../shared/types/reservation'
+import { getNightCount, getStayDates } from '../../../shared/types/reservation'
 import type { ReservationStatus } from '../../../shared/types/reservation'
 
 export function getAvailableQuantity(
@@ -23,4 +23,4 @@ export function canTransitionReservation(
   return allowed[from].includes(to)
 }
 
-export { getNightCount }
+export { getNightCount, getStayDates }

@@ -4,6 +4,7 @@ import {
   canTransitionReservation,
   getAvailableQuantity,
   getNightCount,
+  getStayDates,
 } from '../../../../server/services/reservation/rules'
 import { summarizeAvailability } from '../../../../server/services/reservation/availability'
 
@@ -12,6 +13,12 @@ describe('reservation rules', () => {
     expect(
       getNightCount({ checkInDate: '2026-08-10', checkOutDate: '2026-08-13' }),
     ).toBe(3)
+  })
+
+  it('generates only the nights in a half-open stay range', () => {
+    expect(
+      getStayDates({ checkInDate: '2026-08-10', checkOutDate: '2026-08-13' }),
+    ).toEqual(['2026-08-10', '2026-08-11', '2026-08-12'])
   })
 
   it('calculates availability from inventory quantities', () => {

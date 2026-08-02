@@ -44,3 +44,11 @@ export function getNightCount({
   const checkOut = Date.parse(`${checkOutDate}T00:00:00Z`)
   return Math.round((checkOut - checkIn) / 86_400_000)
 }
+
+export function getStayDates(dateRange: DateRange): string[] {
+  return Array.from({ length: getNightCount(dateRange) }, (_, index) => {
+    const date = new Date(`${dateRange.checkInDate}T00:00:00Z`)
+    date.setUTCDate(date.getUTCDate() + index)
+    return date.toISOString().slice(0, 10)
+  })
+}

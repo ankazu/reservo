@@ -29,6 +29,13 @@
       "when": 1785652364035,
       "tag": "0003_add_request_fingerprint",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785652364036,
+      "tag": "0004_seed_rooms_for_inventory_provisioning",
+      "breakpoints": true
     }
   ]
 }

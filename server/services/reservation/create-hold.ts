@@ -1,4 +1,4 @@
-import { getNightCount } from '../../../shared/types/reservation'
+import { getNightCount, getStayDates } from '../../../shared/types/reservation'
 import { getReservationRequestFingerprint } from '../../../shared/utils/reservation-request'
 import type { CreateReservationInput } from './types'
 import {
@@ -7,6 +7,7 @@ import {
   findReservationByIdempotencyKey,
   findRoomType,
   lockInventoryForStay,
+  provisionInventoryForStay,
   reserveInventory,
 } from '../../repositories/reservation'
 import { getAvailableQuantity } from './rules'
@@ -54,6 +55,7 @@ export async function createReservationHold(
       }
 
       const nights = getNightCount(input)
+      await provisionInventoryForStay(tx, input.roomTypeId, getStayDates(input))
       const inventory = await lockInventoryForStay(
         tx,
         input.roomTypeId,

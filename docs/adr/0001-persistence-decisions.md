@@ -37,6 +37,15 @@ night counts.
 Reservation timestamps such as `createdAt` and `expiresAt` are stored as UTC
 timestamps.
 
+### Inventory provisioning
+
+`room_inventory` is a materialized daily availability table. The initial
+migration seeds the MVP room types, while the reservation and availability
+services idempotently create missing stay-date rows from the room count for
+that room type. Inserts use the `(room_type_id, stay_date)` unique constraint
+with `ON CONFLICT DO NOTHING`; the reservation transaction still locks every
+relevant row before checking and incrementing reserved quantity.
+
 ### Authentication boundary
 
 Authentication is outside the MVP. A reservation may be created for a guest

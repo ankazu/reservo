@@ -1,6 +1,9 @@
-import { getNightCount } from '../../../shared/types/reservation'
+import { getNightCount, getStayDates } from '../../../shared/types/reservation'
 import { getAvailableQuantity } from './rules'
-import { findInventoryForStay } from '../../repositories/reservation'
+import {
+  findInventoryForStay,
+  provisionInventoryForStay,
+} from '../../repositories/reservation'
 import type { db } from '../../utils/db'
 
 type Database = NonNullable<typeof db>
@@ -14,14 +17,15 @@ export async function getAvailability(
     quantity: number
   },
 ) {
-  const inventory = await database.transaction((tx) =>
-    findInventoryForStay(
+  const inventory = await database.transaction(async (tx) => {
+    await provisionInventoryForStay(tx, input.roomTypeId, getStayDates(input))
+    return findInventoryForStay(
       tx,
       input.roomTypeId,
       input.checkInDate,
       input.checkOutDate,
-    ),
-  )
+    )
+  })
   return summarizeAvailability(input, inventory)
 }
 

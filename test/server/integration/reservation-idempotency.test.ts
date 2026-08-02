@@ -14,6 +14,7 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
   const propertyId = crypto.randomUUID()
   const roomTypeId = crypto.randomUUID()
   const inventoryId = crypto.randomUUID()
+  const roomId = crypto.randomUUID()
   const reservationIds: string[] = []
   const checkInDate = '2099-01-01'
   const checkOutDate = '2099-01-03'
@@ -44,6 +45,11 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
       maxGuests: 2,
       nightlyPrice: 1,
     })
+    await database.insert(schema.rooms).values({
+      id: roomId,
+      roomTypeId,
+      name: 'Room 1',
+    })
     await database.insert(schema.roomInventory).values([
       {
         id: inventoryId,
@@ -72,6 +78,9 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     await database
       .delete(schema.roomInventory)
       .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
+    await database
+      .delete(schema.rooms)
+      .where(eq(schema.rooms.roomTypeId, roomTypeId))
     await database
       .delete(schema.roomTypes)
       .where(eq(schema.roomTypes.id, roomTypeId))
@@ -141,5 +150,62 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     expect(successful).toHaveLength(1)
     expect(rejected).toHaveLength(1)
     expect((rejected[0].reason as Error).message).toBe('INSUFFICIENT_INVENTORY')
+  })
+
+  it('rolls back provisioned inventory when the hold cannot be created', async () => {
+    const futureCheckIn = '2099-02-01'
+    const futureCheckOut = '2099-02-03'
+    const futureInput = {
+      ...input,
+      checkInDate: futureCheckIn,
+      checkOutDate: futureCheckOut,
+      quantity: 2,
+    }
+    const before = await database
+      .select()
+      .from(schema.roomInventory)
+      .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
+    expect(before.some((row) => row.stayDate === futureCheckIn)).toBe(false)
+
+    await expect(
+      createReservationHold(
+        database,
+        futureInput,
+        `integration-rollback-${crypto.randomUUID()}`,
+        getReservationRequestFingerprint(futureInput),
+      ),
+    ).rejects.toThrow('INSUFFICIENT_INVENTORY')
+
+    const after = await database
+      .select()
+      .from(schema.roomInventory)
+      .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
+    expect(after.some((row) => row.stayDate === futureCheckIn)).toBe(false)
+  })
+
+  it('provisions missing dates once for concurrent requests with the same key', async () => {
+    const futureInput = {
+      ...input,
+      checkInDate: '2099-03-01',
+      checkOutDate: '2099-03-03',
+    }
+    const key = `integration-provision-${crypto.randomUUID()}`
+    const fingerprint = getReservationRequestFingerprint(futureInput)
+    const results = await Promise.all([
+      createReservationHold(database, futureInput, key, fingerprint),
+      createReservationHold(database, futureInput, key, fingerprint),
+    ])
+
+    reservationIds.push(results[0].id)
+    expect(results[1].id).toBe(results[0].id)
+    const inventory = await database
+      .select()
+      .from(schema.roomInventory)
+      .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
+    expect(
+      inventory.filter((row) =>
+        ['2099-03-01', '2099-03-02'].includes(row.stayDate),
+      ),
+    ).toHaveLength(2)
   })
 })

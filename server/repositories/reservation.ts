@@ -63,6 +63,34 @@ export async function findInventoryForStay(
     .orderBy(schema.roomInventory.stayDate)
 }
 
+export async function provisionInventoryForStay(
+  tx: Transaction,
+  roomTypeId: string,
+  stayDates: string[],
+) {
+  if (stayDates.length === 0) return
+
+  const rooms = await tx
+    .select({ id: schema.rooms.id })
+    .from(schema.rooms)
+    .where(eq(schema.rooms.roomTypeId, roomTypeId))
+
+  if (rooms.length === 0) return
+
+  await tx
+    .insert(schema.roomInventory)
+    .values(
+      stayDates.map((stayDate) => ({
+        roomTypeId,
+        stayDate,
+        totalQuantity: rooms.length,
+      })),
+    )
+    .onConflictDoNothing({
+      target: [schema.roomInventory.roomTypeId, schema.roomInventory.stayDate],
+    })
+}
+
 export async function findRoomType(tx: Transaction, roomTypeId: string) {
   const rows = await tx
     .select()
