@@ -67,25 +67,34 @@ export const roomInventory = pgTable(
   ],
 )
 
-export const reservations = pgTable('reservations', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  propertyId: uuid('property_id')
-    .notNull()
-    .references(() => properties.id),
-  status: reservationStatus('status').notNull().default('PENDING_PAYMENT'),
-  guestName: text('guest_name').notNull(),
-  guestEmail: text('guest_email').notNull(),
-  checkInDate: date('check_in_date').notNull(),
-  checkOutDate: date('check_out_date').notNull(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }),
-  idempotencyKey: text('idempotency_key').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-})
+export const reservations = pgTable(
+  'reservations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    propertyId: uuid('property_id')
+      .notNull()
+      .references(() => properties.id),
+    status: reservationStatus('status').notNull().default('PENDING_PAYMENT'),
+    guestName: text('guest_name').notNull(),
+    guestEmail: text('guest_email').notNull(),
+    checkInDate: date('check_in_date').notNull(),
+    checkOutDate: date('check_out_date').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    idempotencyKey: text('idempotency_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique('reservations_property_idempotency_key').on(
+      table.propertyId,
+      table.idempotencyKey,
+    ),
+  ],
+)
 
 export const reservationItems = pgTable('reservation_items', {
   id: uuid('id').defaultRandom().primaryKey(),

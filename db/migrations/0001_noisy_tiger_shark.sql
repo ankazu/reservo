@@ -1,0 +1,1 @@
+ALTER TABLE "reservations" ADD CONSTRAINT "reservations_property_idempotency_key" UNIQUE("property_id","idempotency_key");

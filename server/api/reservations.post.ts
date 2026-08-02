@@ -1,0 +1,93 @@
+import {
+  createError,
+  defineEventHandler,
+  getHeader,
+  readBody,
+  setResponseStatus,
+} from 'h3'
+
+import { createReservationSchema } from '../../shared/schemas/reservation'
+import type { ApiResponse } from '../../shared/types/api'
+import {
+  createReservationHold,
+  ReservationServiceError,
+} from '../services/reservation/create-hold'
+import { findReservationByIdempotencyKey } from '../repositories/reservation'
+import { db } from '../utils/db'
+
+export default defineEventHandler(
+  async (event): Promise<ApiResponse<unknown>> => {
+    const idempotencyKey = getHeader(event, 'idempotency-key')?.trim()
+    if (!idempotencyKey) {
+      setResponseStatus(event, 400)
+      return {
+        success: false,
+        error: {
+          code: 'IDEMPOTENCY_KEY_REQUIRED',
+          message: 'IDEMPOTENCY_KEY_REQUIRED',
+        },
+      }
+    }
+    if (!db) {
+      setResponseStatus(event, 503)
+      return {
+        success: false,
+        error: {
+          code: 'DATABASE_UNAVAILABLE',
+          message: 'DATABASE_UNAVAILABLE',
+        },
+      }
+    }
+
+    const parsed = createReservationSchema.safeParse(await readBody(event))
+    if (!parsed.success) {
+      setResponseStatus(event, 400)
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'INVALID_REQUEST',
+          details: parsed.error.flatten(),
+        },
+      }
+    }
+
+    try {
+      const reservation = await db.transaction((tx) =>
+        createReservationHold(tx, parsed.data, idempotencyKey),
+      )
+      return { success: true, data: reservation }
+    } catch (error) {
+      if (error instanceof ReservationServiceError) {
+        setResponseStatus(event, 409)
+        return {
+          success: false,
+          error: { code: error.code, message: error.code },
+        }
+      }
+      if (isUniqueViolation(error)) {
+        const existing = await db.transaction((tx) =>
+          findReservationByIdempotencyKey(
+            tx,
+            parsed.data.propertyId,
+            idempotencyKey,
+          ),
+        )
+        if (existing) return { success: true, data: existing }
+      }
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'reservation_failed',
+      })
+    }
+  },
+)
+
+function isUniqueViolation(error: unknown): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === '23505'
+  )
+}
