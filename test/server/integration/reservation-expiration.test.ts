@@ -38,7 +38,7 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
     await database.insert(schema.properties).values({
       id: propertyId,
       name: 'Expiration Test Property',
-      timezone: 'Asia/Taipei',
+      timezone: 'America/New_York',
       currency: 'TWD',
     })
     await database.insert(schema.roomTypes).values({
@@ -102,6 +102,7 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       taxesAmount: 0,
       discountsAmount: 0,
       totalAmount: 2,
+      cancellableUntil: new Date('2099-03-31T16:00:00.000Z'),
     })
     const [storedReservation] = await database
       .select()
@@ -163,6 +164,10 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       getReservationRequestFingerprint(input),
     )
     reservationIds.push(reservation.id)
+
+    expect(reservation.cancellableUntil).toEqual(
+      new Date('2099-03-31T16:00:00.000Z'),
+    )
 
     const cancelled = await transitionReservation(
       database,

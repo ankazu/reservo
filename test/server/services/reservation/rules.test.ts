@@ -79,9 +79,6 @@ describe('reservation rules', () => {
     expect(getCancellableUntil('2026-08-10')).toEqual(
       new Date('2026-08-09T16:00:00.000Z'),
     )
-    expect(getCancellableUntil('2026-08-10').getTime()).toBe(
-      new Date('2026-08-09T16:00:00.000Z').getTime(),
-    )
   })
 
   it('uses half-open stay dates when summarizing availability', () => {

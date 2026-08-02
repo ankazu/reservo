@@ -52,7 +52,7 @@ describeIntegration('cancellation policy corrective migration', () => {
       .where(eq(schema.properties.id, propertyId))
   })
 
-  it('normalizes existing deadlines to fixed Asia/Taipei midnight', async () => {
+  it('replaces a property-timezone deadline with fixed Asia/Taipei midnight', async () => {
     await database.execute(sql.raw(migration))
 
     const [reservation] = await database
