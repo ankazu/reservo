@@ -17,6 +17,7 @@
 - 資料庫：PostgreSQL
 - ORM：Drizzle ORM 或 Prisma，實作時擇一
 - 輸入驗證：Zod
+- 國際化：Nuxt i18n，預設 locale 為 `zh-TW`
 - 測試：Vitest；重要使用者流程再加入 Playwright
 
 MVP 不使用 Redis，也不拆分成微服務或多個 workspace package。Nitro 的 `server/` 直接提供後端 API。
@@ -67,10 +68,7 @@ MVP 先使用以下狀態：
 
 ```ts
 type ReservationStatus =
-  | 'PENDING_PAYMENT'
-  | 'CONFIRMED'
-  | 'CANCELLED'
-  | 'EXPIRED'
+  'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED'
 ```
 
 狀態轉換：
@@ -85,8 +83,8 @@ CONFIRMED       → CANCELLED
 取消規則：`reservations.cancellable_until` 保存取消期限；MVP 固定使用
 `Asia/Taipei`，期限是入住日台北時間 00:00，且必須嚴格早於該 timestamp
 才可取消。這項政策不使用 `properties.timezone`，因此 property 的 timezone
-設定不會改變新訂單或歷史訂單的取消期限。已存在的資料若曾依 property
-timezone 計算，需由 corrective migration 正規化為此 MVP policy。
+設定不會改變新訂單或歷史訂單的取消期限。Migration 行為與歷史資料限制
+以 [persistence ADR](adr/0001-persistence-decisions.md) 為準。
 
 後續若加入入住、退房或未入住流程，再新增 `CHECKED_IN`、`CHECKED_OUT`、`NO_SHOW`。
 
@@ -216,15 +214,15 @@ app/
 ├─ pages/
 ├─ components/
 ├─ composables/
-├─ server/
-│  ├─ api/
-│  ├─ services/
-│  ├─ repositories/
-│  └─ utils/
-├─ shared/
-│  ├─ types/
-│  └─ schemas/
-└─ db/
+server/
+├─ api/
+├─ services/
+├─ repositories/
+└─ utils/
+shared/
+├─ types/
+└─ schemas/
+db/
 ```
 
 API route 只負責處理 HTTP 輸入與輸出；庫存計算、狀態轉換與訂房交易邏輯集中在 `server/services`，資料庫查詢集中在 `server/repositories`。
@@ -259,7 +257,7 @@ expireReservation(input)
 - pnpm workspace 與獨立 `packages/`：改為單一 Nuxt 專案。
 - Redis：先使用 PostgreSQL transaction 與 row lock；只有效能需求出現後再加入。
 - 多金流 `PaymentGateway` 抽象：先串接一個金流，甚至可以先用假付款流程。
-- 多幣別、多語言、多旅館：先固定單一住宿場所與單一幣別。
+- 多幣別、多旅館：先固定單一住宿場所與單一幣別。
 - `audit_logs`：日後需要營運追蹤或合規時再加入。
 - `CancellationPolicy` 獨立資料表：先使用 `reservations.cancellable_until`。
 - 入住、退房、未入住狀態：MVP 先不處理現場營運流程。

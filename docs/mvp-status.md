@@ -57,7 +57,7 @@
 | 訂房過期                            | ✅   | 支援單筆與 maintenance 批次過期。                                       |
 | 依 ID 取得訂房詳情 API              | ✅   | `GET /api/reservations/:reservationId`，包含 item snapshots。           |
 | 訂房總額持久化                      | ✅   | migrations `0005`/`0006` 保存並回填 `guest_count` 與 TWD 金額摘要；hold 建立時由 server-side quote 寫入。 |
-| `guest_count` / `cancellable_until` | ✅   | `guest_count` 與 `cancellable_until` 已持久化；取消期限為入住日 00:00（固定 Asia/Taipei），migration `0009` 會正規化既有 rows。 |
+| `guest_count` / `cancellable_until` | ✅   | `guest_count` 與 `cancellable_until` 已持久化；取消期限為入住日 00:00（固定 Asia/Taipei）。Migration 行為與限制以 [persistence ADR](adr/0001-persistence-decisions.md) 為準。 |
 | 真正付款 provider                   | ⛔   | ADR 明確排除於目前 MVP；目前保留 fake confirmation。                    |
 
 ### D. 使用者介面與 API client

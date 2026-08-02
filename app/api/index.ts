@@ -1,5 +1,5 @@
 import { createAvailabilityApi } from './availability'
-import type { ApiClient } from './client'
+import { useApiClient, type ApiClient } from './client'
 import { createReservationsApi } from './reservations'
 
 export function createApiModules(client: ApiClient) {

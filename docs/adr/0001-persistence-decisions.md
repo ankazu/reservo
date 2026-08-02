@@ -67,8 +67,16 @@ reservation is cancellable strictly before the check-in date at 00:00 in the
 fixed MVP timezone `Asia/Taipei`; the check-in instant itself is not
 cancellable. New reservations persist this timestamp, and cancellation
 transitions enforce it. The column is non-null for persisted reservations.
-Migration `0009_normalize_cancellation_timezone` corrects existing rows in
-databases that previously derived this value from a property's timezone.
+Migration `0009_normalize_cancellation_timezone` corrects rows that can be
+identified as having been derived from a property's timezone, while preserving
+deadlines that may have been explicitly customized. This identification is a
+heuristic: without a provenance column, a customized deadline that happens to
+equal the legacy value cannot be distinguished and will also be normalized.
+Likewise, if a property's timezone changed after a reservation was created,
+the current property timezone cannot reliably identify the old value; such rows
+are left unchanged. Timezones not present in PostgreSQL's `pg_timezone_names`
+view are also skipped. Adding provenance is deferred because it requires a new
+schema and cannot recover the source of existing rows.
 
 ## Consequences
 
