@@ -136,6 +136,29 @@ describe('reservation store idempotency', () => {
 })
 
 describe('reservation store transitions', () => {
+  it('updates the current reservation after confirming a hold', async () => {
+    const api = createApi()
+    api.reservations.confirmReservation.mockResolvedValue({
+      id: 'reservation-1',
+      propertyId: holdInput.propertyId,
+      status: 'CONFIRMED',
+      guestName: holdInput.guestName,
+      guestEmail: holdInput.guestEmail,
+      checkInDate: holdInput.checkInDate,
+      checkOutDate: holdInput.checkOutDate,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    })
+    const store = createReservationStore(api)
+
+    const result = await store.confirmReservation('reservation-1')
+
+    expect(api.reservations.confirmReservation).toHaveBeenCalledWith(
+      'reservation-1',
+    )
+    expect(result?.status).toBe('CONFIRMED')
+    expect(store.currentReservation.value?.status).toBe('CONFIRMED')
+  })
+
   it('updates the current reservation after cancelling a hold', async () => {
     const api = createApi()
     api.reservations.cancelReservation.mockResolvedValue({

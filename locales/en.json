@@ -96,7 +96,9 @@
     "submit": "Hold room",
     "success": "Your room is held. Please complete payment before it expires.",
     "expiresIn": "{time} remaining",
+    "confirm": "Confirm reservation",
     "cancel": "Cancel hold",
+    "retryExpiration": "Retry status update",
     "status": {
       "PENDING_PAYMENT": "Awaiting payment",
       "CONFIRMED": "Reservation confirmed",

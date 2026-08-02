@@ -96,7 +96,9 @@
     "submit": "保留房間",
     "success": "房間已保留，請於期限內完成付款。",
     "expiresIn": "剩餘 {time}",
+    "confirm": "確認訂房",
     "cancel": "取消保留",
+    "retryExpiration": "重試更新狀態",
     "status": {
       "PENDING_PAYMENT": "等待付款",
       "CONFIRMED": "訂房已確認",

@@ -19,6 +19,7 @@ const reservationStore = useReservationStore()
 const propertyId = '00000000-0000-4000-8000-000000000001'
 const now = ref(Date.now())
 let expiryTimer: ReturnType<typeof setInterval> | undefined
+let expirationRequestId: string | null = null
 
 const reservationSecondsRemaining = computed(() => {
   const expiresAt = reservationStore.currentReservation?.expiresAt
@@ -36,6 +37,31 @@ const reservationTimeRemaining = computed(() => {
   const remainingSeconds = String(seconds % 60).padStart(2, '0')
   return `${minutes}:${remainingSeconds}`
 })
+
+async function expireHold() {
+  const reservation = reservationStore.currentReservation
+  if (
+    reservationSecondsRemaining.value !== 0 ||
+    !reservation ||
+    reservation.status !== 'PENDING_PAYMENT' ||
+    expirationRequestId === reservation.id ||
+    reservationStore.isLoading
+  ) {
+    return
+  }
+
+  expirationRequestId = reservation.id
+  const result = await reservationStore.expireReservation(reservation.id)
+  if (!result) expirationRequestId = null
+}
+
+watch(
+  () =>
+    [reservationSecondsRemaining.value, reservationStore.isLoading] as const,
+  ([seconds]) => {
+    if (seconds === 0) void expireHold()
+  },
+)
 
 const rooms = [
   {
@@ -133,10 +159,21 @@ async function createHold() {
   })
 }
 
+async function confirmHold() {
+  const reservation = reservationStore.currentReservation
+  if (!reservation || reservation.status !== 'PENDING_PAYMENT') return
+  await reservationStore.confirmReservation(reservation.id)
+}
+
 async function cancelHold() {
   const reservation = reservationStore.currentReservation
   if (!reservation) return
   await reservationStore.cancelReservation(reservation.id)
+}
+
+async function retryExpiration() {
+  expirationRequestId = null
+  await expireHold()
 }
 </script>
 
@@ -437,6 +474,31 @@ async function cancelHold() {
           @click="cancelHold"
         >
           {{ t('reservation.cancel') }}
+        </button>
+        <button
+          v-if="
+            reservationStore.currentReservation.status === 'PENDING_PAYMENT' &&
+            reservationSecondsRemaining !== 0
+          "
+          type="button"
+          class="bg-clay px-4 py-2 text-xs text-white transition hover:bg-[#ad593b] focus:outline-none focus:ring-2 focus:ring-clay/50 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="reservationStore.isLoading"
+          @click="confirmHold"
+        >
+          {{ t('reservation.confirm') }}
+        </button>
+        <button
+          v-if="
+            reservationStore.currentReservation.status === 'PENDING_PAYMENT' &&
+            reservationSecondsRemaining === 0 &&
+            reservationStore.errorCode
+          "
+          type="button"
+          class="border border-clay px-4 py-2 text-xs text-clay transition hover:bg-clay hover:text-white focus:outline-none focus:ring-2 focus:ring-clay/50 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="reservationStore.isLoading"
+          @click="retryExpiration"
+        >
+          {{ t('reservation.retryExpiration') }}
         </button>
         <p
           v-if="reservationStore.errorCode"
