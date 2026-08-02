@@ -56,8 +56,8 @@
 | 取消訂房                            | ✅   | 支援 pending 與 confirmed 取消，庫存只釋放一次。                        |
 | 訂房過期                            | ✅   | 支援單筆與 maintenance 批次過期。                                       |
 | 依 ID 取得訂房詳情 API              | ✅   | `GET /api/reservations/:reservationId`，包含 item snapshots。           |
-| 訂房總額持久化                      | ✅   | migration `0005_add_reservation_summary` 保存 `guest_count` 與 TWD 金額摘要；hold 建立時由 server-side quote 寫入。 |
-| `guest_count` / `cancellable_until` | 🟡   | `guest_count` 已加入；目前沒有既定取消期限規則，因此 `cancellable_until` 延後。 |
+| 訂房總額持久化                      | ✅   | migrations `0005`/`0006` 保存並回填 `guest_count` 與 TWD 金額摘要；hold 建立時由 server-side quote 寫入。 |
+| `guest_count` / `cancellable_until` | ✅   | `guest_count` 與 `cancellable_until` 已持久化；取消期限為入住日 00:00（Asia/Taipei）。 |
 | 真正付款 provider                   | ⛔   | ADR 明確排除於目前 MVP；目前保留 fake confirmation。                    |
 
 ### D. 使用者介面與 API client
@@ -81,7 +81,7 @@
 | Service 單元測試                          | ✅   | 目前 `npm test` 有 46 passed。                                        |
 | PostgreSQL concurrency tests              | 🟡   | 測試已寫，尚未在設定 `DATABASE_URL` 的環境執行。                      |
 | API route 行為測試                        | ⬜   | 尚未完整覆蓋 HTTP status 與 ApiResponse。                             |
-| Reservation item historical snapshot test | 🟡   | service 層已驗證回傳 snapshot，仍需實際 PostgreSQL persistence test。 |
+| Reservation item historical snapshot test | ✅   | service 與 PostgreSQL integration test 都驗證歷史 snapshot 與摘要金額。 |
 | Playwright search-to-reservation          | ⬜   | 尚未加入。                                                            |
 | CI 執行 test/build/format                 | ⬜   | 尚未設定 CI workflow。                                                |
 

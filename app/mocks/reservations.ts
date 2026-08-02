@@ -4,6 +4,11 @@ import type {
   Reservation,
   ReservationHold,
 } from '~~/shared/types/reservation'
+import {
+  getCancellableUntil,
+  getNightCount,
+} from '~~/shared/types/reservation'
+import { calculatePriceQuote } from '~~/shared/utils/pricing'
 import { getReservationRequestFingerprint } from '~~/shared/utils/reservation-request'
 import type { MockScenario } from './scenario'
 
@@ -66,7 +71,12 @@ export function createReservationsMock(scenario: MockScenario) {
         guestCount: input.guests,
         checkInDate: input.checkInDate,
         checkOutDate: input.checkOutDate,
-        totalAmount: input.quantity * 4200,
+        totalAmount: calculatePriceQuote({
+          nightlyPrice: 4200,
+          nights: getNightCount(input),
+          quantity: input.quantity,
+        }).total,
+        cancellableUntil: getCancellableUntil(input.checkInDate).toISOString(),
         expiresAt:
           scenario === 'expired-reservation'
             ? new Date(Date.now() - 60_000).toISOString()
@@ -136,6 +146,19 @@ export function createReservationsMock(scenario: MockScenario) {
           error: {
             code: 'RESERVATION_NOT_EXPIRED',
             message: 'RESERVATION_NOT_EXPIRED',
+          },
+        }
+      }
+      if (
+        status === 'CANCELLED' &&
+        reservation.cancellableUntil &&
+        new Date(reservation.cancellableUntil).getTime() <= Date.now()
+      ) {
+        return {
+          success: false,
+          error: {
+            code: 'RESERVATION_CANCELLATION_EXPIRED',
+            message: 'RESERVATION_CANCELLATION_EXPIRED',
           },
         }
       }

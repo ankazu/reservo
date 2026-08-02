@@ -41,7 +41,7 @@ export async function getReservation(
         discounts: reservation.discountsAmount,
         total: reservation.totalAmount,
       },
-      totalAmount: reservation.totalAmount,
+      cancellableUntil: reservation.cancellableUntil,
       expiresAt: reservation.expiresAt,
       items,
     }

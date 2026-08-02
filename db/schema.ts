@@ -85,6 +85,9 @@ export const reservations = pgTable(
     taxesAmount: integer('taxes_amount').notNull().default(0),
     discountsAmount: integer('discounts_amount').notNull().default(0),
     totalAmount: integer('total_amount').notNull().default(0),
+    cancellableUntil: timestamp('cancellable_until', {
+      withTimezone: true,
+    }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     idempotencyKey: text('idempotency_key').notNull(),
     requestFingerprint: text('request_fingerprint'),

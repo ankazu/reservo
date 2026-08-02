@@ -1,10 +1,7 @@
-export type PriceQuote = {
-  currency: 'TWD'
+import type { ReservationPriceSummary } from '../types/reservation'
+
+export type PriceQuote = ReservationPriceSummary & {
   nightlyPrice: number
-  subtotal: number
-  taxes: number
-  discounts: number
-  total: number
 }
 
 type PriceInput = {

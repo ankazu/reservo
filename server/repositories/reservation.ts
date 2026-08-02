@@ -42,6 +42,7 @@ export async function findReservationById(
       taxesAmount: schema.reservations.taxesAmount,
       discountsAmount: schema.reservations.discountsAmount,
       totalAmount: schema.reservations.totalAmount,
+      cancellableUntil: schema.reservations.cancellableUntil,
       expiresAt: schema.reservations.expiresAt,
     })
     .from(schema.reservations)

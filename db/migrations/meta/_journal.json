@@ -43,6 +43,13 @@
       "when": 1785651933567,
       "tag": "0005_add_reservation_summary",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785651933568,
+      "tag": "0006_backfill_reservation_summary",
+      "breakpoints": true
     }
   ]
 }

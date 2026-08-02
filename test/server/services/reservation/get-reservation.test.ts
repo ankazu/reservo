@@ -32,6 +32,7 @@ describe('get reservation service', () => {
       taxesAmount: 0,
       discountsAmount: 0,
       totalAmount: 11600,
+      cancellableUntil: new Date('2026-08-09T16:00:00Z'),
       expiresAt: null,
       idempotencyKey: 'internal-key',
       requestFingerprint: 'internal-fingerprint',
@@ -69,7 +70,7 @@ describe('get reservation service', () => {
         discounts: reservation.discountsAmount,
         total: reservation.totalAmount,
       },
-      totalAmount: reservation.totalAmount,
+      cancellableUntil: reservation.cancellableUntil,
       expiresAt: reservation.expiresAt,
       items: [item],
     })
