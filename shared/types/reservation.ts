@@ -26,6 +26,7 @@ export type CreateReservationHoldInput = DateRange & {
   propertyId: string
   roomTypeId: string
   quantity: number
+  guests: number
   guestName: string
   guestEmail: string
   ratePlanName: 'Standard'

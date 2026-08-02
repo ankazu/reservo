@@ -25,6 +25,7 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     checkInDate,
     checkOutDate,
     quantity: 1,
+    guests: 2,
     guestName: 'Integration Guest',
     guestEmail: 'integration@example.com',
     ratePlanName: 'Standard' as const,

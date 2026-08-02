@@ -19,6 +19,7 @@ export class ReservationServiceError extends Error {
   constructor(
     readonly code:
       | 'ROOM_TYPE_NOT_FOUND'
+      | 'GUEST_LIMIT_EXCEEDED'
       | 'INVENTORY_NOT_READY'
       | 'INSUFFICIENT_INVENTORY'
       | 'IDEMPOTENCY_PAYLOAD_MISMATCH'
@@ -52,6 +53,9 @@ export async function createReservationHold(
       const roomType = await findRoomType(tx, input.roomTypeId)
       if (!roomType || roomType.propertyId !== input.propertyId) {
         throw new ReservationServiceError('ROOM_TYPE_NOT_FOUND')
+      }
+      if (input.guests > roomType.maxGuests) {
+        throw new ReservationServiceError('GUEST_LIMIT_EXCEEDED')
       }
 
       const nights = getNightCount(input)

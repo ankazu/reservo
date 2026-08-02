@@ -8,6 +8,7 @@ const input = {
   checkInDate: '2026-08-10',
   checkOutDate: '2026-08-13',
   quantity: 1,
+  guests: 2,
   propertyId: 'property-1',
   guestName: 'Guest',
   guestEmail: 'guest@example.com',

@@ -42,6 +42,7 @@ describe('reservation rules', () => {
         checkInDate: '2026-08-10',
         checkOutDate: '2026-08-12',
         quantity: 2,
+        guests: 2,
       },
       [
         {
@@ -57,6 +58,7 @@ describe('reservation rules', () => {
           blockedQuantity: 0,
         },
       ],
+      2,
     )
 
     expect(result.nights).toBe(2)
@@ -82,6 +84,35 @@ describe('reservation rules', () => {
     )
 
     expect(result.inventoryReady).toBe(false)
+    expect(result.available).toBe(false)
+  })
+
+  it('reports unavailable when the room cannot fit the guest count', () => {
+    const result = summarizeAvailability(
+      {
+        checkInDate: '2026-08-10',
+        checkOutDate: '2026-08-12',
+        quantity: 1,
+        guests: 3,
+      },
+      [
+        {
+          stayDate: '2026-08-10',
+          totalQuantity: 4,
+          reservedQuantity: 0,
+          blockedQuantity: 0,
+        },
+        {
+          stayDate: '2026-08-11',
+          totalQuantity: 4,
+          reservedQuantity: 0,
+          blockedQuantity: 0,
+        },
+      ],
+      2,
+    )
+
+    expect(result.inventoryReady).toBe(true)
     expect(result.available).toBe(false)
   })
 })

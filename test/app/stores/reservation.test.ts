@@ -10,6 +10,7 @@ const input = {
   checkInDate: '2026-08-10',
   checkOutDate: '2026-08-12',
   quantity: 1,
+  guests: 2,
 }
 
 const holdInput: CreateReservationHoldInput = {

@@ -3,6 +3,7 @@ export type ReservationSearchInput = {
   checkInDate: string
   checkOutDate: string
   quantity: number
+  guests: number
 }
 
 export type AvailabilityResponse = {

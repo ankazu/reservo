@@ -13,6 +13,7 @@ export default defineEventHandler(
       checkInDate: query.checkInDate,
       checkOutDate: query.checkOutDate,
       quantity: query.quantity ? Number(query.quantity) : undefined,
+      guests: query.guests ? Number(query.guests) : undefined,
     })
 
     if (!parsed.success) {

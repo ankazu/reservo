@@ -9,6 +9,7 @@ export function getReservationRequestFingerprint(
     checkInDate: input.checkInDate,
     checkOutDate: input.checkOutDate,
     quantity: input.quantity,
+    guests: input.guests,
     guestName: input.guestName,
     guestEmail: input.guestEmail,
     ratePlanName: input.ratePlanName,

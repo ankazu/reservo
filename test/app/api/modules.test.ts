@@ -37,6 +37,7 @@ describe('availability API module', () => {
       checkInDate: '2026-08-10',
       checkOutDate: '2026-08-12',
       quantity: 1,
+      guests: 2,
     }
     const result = await createAvailabilityApi(client).getAvailability(input)
 
@@ -59,6 +60,7 @@ describe('availability API module', () => {
         checkInDate: '2026-08-10',
         checkOutDate: '2026-08-12',
         quantity: 1,
+        guests: 2,
       }),
     ).rejects.toMatchObject({ code: 'INSUFFICIENT_INVENTORY' })
   })
@@ -101,6 +103,7 @@ describe('reservation API module', () => {
       checkInDate: '2026-08-10',
       checkOutDate: '2026-08-12',
       quantity: 1,
+      guests: 2,
       guestName: 'Guest',
       guestEmail: 'guest@example.com',
       ratePlanName: 'Standard' as const,

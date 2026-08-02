@@ -87,6 +87,7 @@ async function submitSearch() {
       checkInDate: checkIn.value,
       checkOutDate: checkOut.value,
       quantity: 1,
+      guests: guests.value,
     })),
   )
   if (reservationStore.errorCode) {
@@ -125,6 +126,7 @@ async function createHold() {
     checkInDate: checkIn.value,
     checkOutDate: checkOut.value,
     quantity: 1,
+    guests: guests.value,
     guestName: guestName.value,
     guestEmail: guestEmail.value,
     ratePlanName: 'Standard',

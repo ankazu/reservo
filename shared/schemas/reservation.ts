@@ -16,6 +16,7 @@ export const reservationSearchSchema = z
     checkInDate: isoDate,
     checkOutDate: isoDate,
     quantity: z.number().int().positive().max(10).default(1),
+    guests: z.number().int().positive().max(10).default(1),
   })
   .refine((input) => input.checkOutDate > input.checkInDate, {
     path: ['checkOutDate'],
@@ -29,6 +30,7 @@ export const createReservationSchema = z
     checkInDate: isoDate,
     checkOutDate: isoDate,
     quantity: z.number().int().positive().max(10).default(1),
+    guests: z.number().int().positive().max(10).default(1),
     guestName: z.string().trim().min(1).max(120),
     guestEmail: z.email(),
     ratePlanName: z.literal('Standard').default('Standard'),

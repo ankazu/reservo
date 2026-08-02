@@ -11,14 +11,17 @@ const validDates = {
 }
 
 describe('reservation schemas', () => {
-  it('accepts a valid availability search and defaults quantity', () => {
+  it('accepts a valid availability search and defaults quantity and guests', () => {
     const result = reservationSearchSchema.safeParse({
       roomTypeId: '11111111-1111-4111-8111-111111111111',
       ...validDates,
     })
 
     expect(result.success).toBe(true)
-    if (result.success) expect(result.data.quantity).toBe(1)
+    if (result.success) {
+      expect(result.data.quantity).toBe(1)
+      expect(result.data.guests).toBe(1)
+    }
   })
 
   it('rejects checkout dates that do not follow check-in', () => {

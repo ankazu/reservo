@@ -4,7 +4,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as schema from '../../../db/schema'
 import { getReservationRequestFingerprint } from '../../../shared/utils/reservation-request'
 import { createReservationHold } from '../../../server/services/reservation/create-hold'
-import { expireReservations } from '../../../server/services/reservation/transition'
+import {
+  expireReservations,
+  transitionReservation,
+} from '../../../server/services/reservation/transition'
 import { db } from '../../../server/utils/db'
 
 const runIntegration = Boolean(process.env.DATABASE_URL)
@@ -25,6 +28,7 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
     checkInDate,
     checkOutDate,
     quantity: 1,
+    guests: 2,
     guestName: 'Expiration Guest',
     guestEmail: 'expiration@example.com',
     ratePlanName: 'Standard' as const,
@@ -129,5 +133,69 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       now: new Date('2099-01-03T00:00:00Z'),
     })
     expect(rerun).toHaveLength(0)
+  })
+
+  it('releases inventory exactly once when a hold is cancelled', async () => {
+    const reservation = await createReservationHold(
+      database,
+      input,
+      `integration-cancel-${crypto.randomUUID()}`,
+      getReservationRequestFingerprint(input),
+    )
+    reservationIds.push(reservation.id)
+
+    const cancelled = await transitionReservation(
+      database,
+      reservation.id,
+      'CANCELLED',
+    )
+    const repeated = await transitionReservation(
+      database,
+      reservation.id,
+      'CANCELLED',
+    )
+
+    expect(cancelled.status).toBe('CANCELLED')
+    expect(repeated.status).toBe('CANCELLED')
+
+    const inventory = await database
+      .select()
+      .from(schema.roomInventory)
+      .where(
+        and(
+          eq(schema.roomInventory.roomTypeId, roomTypeId),
+          inArray(schema.roomInventory.stayDate, [checkInDate, '2099-04-02']),
+        ),
+      )
+    expect(inventory.every((row) => row.reservedQuantity === 0)).toBe(true)
+  })
+
+  it('keeps historical item pricing and names after room type changes', async () => {
+    const reservation = await createReservationHold(
+      database,
+      input,
+      `integration-snapshot-${crypto.randomUUID()}`,
+      getReservationRequestFingerprint(input),
+    )
+    reservationIds.push(reservation.id)
+
+    await database
+      .update(schema.roomTypes)
+      .set({ name: 'Renamed Test Room', nightlyPrice: 9999 })
+      .where(eq(schema.roomTypes.id, roomTypeId))
+
+    const [item] = await database
+      .select()
+      .from(schema.reservationItems)
+      .where(eq(schema.reservationItems.reservationId, reservation.id))
+
+    expect(item).toMatchObject({
+      roomTypeNameSnapshot: 'Expiration Test Room',
+      ratePlanNameSnapshot: 'Standard',
+      nightlyPrice: 1,
+      taxes: 0,
+      discounts: 0,
+      quantity: 1,
+    })
   })
 })
