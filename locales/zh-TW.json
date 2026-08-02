@@ -1,20 +1,24 @@
 {
   "app": {
     "name": "Reservo 訂房系統",
-    "description": "訂房系統 MVP 開發中"
+    "description": "訂房系統 MVP 開發中",
+    "currency": "TWD"
   },
   "navigation": {
     "label": "主要導覽",
     "rooms": "房型",
     "story": "關於 Reservo",
     "contact": "聯絡我們",
-    "language": "切換語言"
+    "language": "切換語言",
+    "switchTo": "English"
   },
   "hero": {
     "eyebrow": "A softer way to stay",
     "title": "住進一段",
     "titleAccent": "剛剛好的日子",
-    "description": "在城市與自然之間，留一點空白給自己。Reservo 為你保留一間安靜、舒服的房間。"
+    "description": "在城市與自然之間，留一點空白給自己。Reservo 為你保留一間安靜、舒服的房間。",
+    "artLineOne": "STAY",
+    "artLineTwo": "CURIOUS"
   },
   "search": {
     "eyebrow": "Find your stay",
@@ -25,7 +29,7 @@
     "guestUnit": "位旅客",
     "submit": "搜尋房間",
     "errors": { "dateRange": "請選擇有效的入住與退房日期。" },
-    "success": "已找到適合 {{guests}} 位旅客的房間。"
+    "success": "已找到適合 {guests} 位旅客的房間。"
   },
   "rooms": {
     "eyebrow": "The rooms",
@@ -33,6 +37,9 @@
     "description": "每一間房都有自己的光線、氣味與節奏。挑一間，讓旅程從睡個好覺開始。",
     "night": "晚",
     "bed": "張床",
+    "area": "{size} 平方公尺",
+    "beds": "{count} 張床",
+    "guests": "{count} 位旅客",
     "choose": "查看房型",
     "standard": {
       "name": "日光房",

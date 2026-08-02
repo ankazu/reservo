@@ -93,7 +93,7 @@ export async function releaseInventory(
   inventoryId: string,
   quantity: number,
 ) {
-  await tx
+  const rows = await tx
     .update(schema.roomInventory)
     .set({
       reservedQuantity: sql`${schema.roomInventory.reservedQuantity} - ${quantity}`,
@@ -104,6 +104,8 @@ export async function releaseInventory(
         gte(schema.roomInventory.reservedQuantity, quantity),
       ),
     )
+
+  return rows.length === 1
 }
 
 export async function updateReservationStatus(

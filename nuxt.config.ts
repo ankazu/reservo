@@ -15,6 +15,12 @@ export default defineNuxtConfig({
         file: 'zh-TW.json',
         name: '繁體中文',
       },
+      {
+        code: 'en',
+        language: 'en-US',
+        file: 'en.json',
+        name: 'English',
+      },
     ],
   },
 })

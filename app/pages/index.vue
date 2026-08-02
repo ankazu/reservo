@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { t, locale } = useI18n()
+const { t, locale, setLocale } = useI18n()
 
 const today = new Date().toISOString().slice(0, 10)
 const checkIn = ref(today)
@@ -12,7 +12,7 @@ const rooms = [
   {
     key: 'standard',
     icon: '01',
-    size: '28 m²',
+    size: 28,
     beds: 1,
     price: 4200,
     accent: 'bg-[#d2b99e]',
@@ -20,7 +20,7 @@ const rooms = [
   {
     key: 'garden',
     icon: '02',
-    size: '36 m²',
+    size: 36,
     beds: 1,
     price: 5800,
     accent: 'bg-[#a8b9a5]',
@@ -28,7 +28,7 @@ const rooms = [
   {
     key: 'suite',
     icon: '03',
-    size: '52 m²',
+    size: 52,
     beds: 2,
     price: 8600,
     accent: 'bg-[#c78062]',
@@ -38,9 +38,15 @@ const rooms = [
 const formattedPrice = (price: number) =>
   new Intl.NumberFormat(locale.value, {
     style: 'currency',
-    currency: 'TWD',
+    currency: t('app.currency'),
     maximumFractionDigits: 0,
   }).format(price)
+
+async function toggleLocale() {
+  const nextLocale = locale.value === 'zh-TW' ? 'en' : 'zh-TW'
+  await setLocale(nextLocale)
+  locale.value = nextLocale
+}
 
 function submitSearch() {
   formError.value = ''
@@ -61,7 +67,7 @@ function submitSearch() {
       <a
         href="#top"
         class="text-[22px] font-bold tracking-[-0.07em]"
-        aria-label="Reservo"
+        :aria-label="t('app.name')"
         >reservo<span class="text-clay">.</span></a
       >
       <nav
@@ -78,8 +84,9 @@ function submitSearch() {
         class="rounded-full border border-stone-300 px-3.5 py-2 text-xs text-moss"
         type="button"
         :aria-label="t('navigation.language')"
+        @click="toggleLocale"
       >
-        繁中 <span class="ml-1.5">⌄</span>
+        {{ t('navigation.switchTo') }} <span class="ml-1.5">⌄</span>
       </button>
     </header>
 
@@ -118,7 +125,7 @@ function submitSearch() {
         ></div>
         <span
           class="absolute left-6 top-6 text-[11px] uppercase leading-[1.4] tracking-[0.13em] text-[#53655a]"
-          >STAY<br />CURIOUS</span
+          >{{ t('hero.artLineOne') }}<br />{{ t('hero.artLineTwo') }}</span
         >
       </div>
     </section>
@@ -250,9 +257,9 @@ function submitSearch() {
             <div
               class="flex gap-3 border-t border-stone-300 pt-4 text-[10px] text-moss"
             >
-              <span>{{ room.size }}</span
-              ><span>{{ room.beds }} {{ t('rooms.bed') }}</span
-              ><span>{{ guests }} {{ t('rooms.guestUnit') }}</span>
+              <span>{{ t('rooms.area', { size: room.size }) }}</span
+              ><span>{{ t('rooms.beds', { count: room.beds }) }}</span
+              ><span>{{ t('rooms.guests', { count: guests }) }}</span>
             </div>
             <button
               class="pt-5 text-xs text-clay hover:underline"

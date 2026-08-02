@@ -22,4 +22,9 @@ describe('reservation rules', () => {
     expect(canTransitionReservation('CONFIRMED', 'EXPIRED')).toBe(false)
     expect(canTransitionReservation('CANCELLED', 'CONFIRMED')).toBe(false)
   })
+
+  it('does not allow terminal reservations to transition again', () => {
+    expect(canTransitionReservation('CANCELLED', 'EXPIRED')).toBe(false)
+    expect(canTransitionReservation('EXPIRED', 'CANCELLED')).toBe(false)
+  })
 })

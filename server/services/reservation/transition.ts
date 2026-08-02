@@ -45,7 +45,10 @@ export async function transitionReservation(
         reservation.checkOutDate,
       )
       for (const row of inventory) {
-        await releaseInventory(tx, row.id, item.quantity)
+        const released = await releaseInventory(tx, row.id, item.quantity)
+        if (!released) {
+          throw new ReservationTransitionError('INVENTORY_RELEASE_FAILED')
+        }
       }
       if (inventory.length !== getNightCount(reservation)) {
         throw new ReservationTransitionError('INVENTORY_RELEASE_FAILED')
