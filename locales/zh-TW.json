@@ -93,7 +93,15 @@
     "name": "姓名",
     "email": "Email",
     "submit": "保留房間",
-    "success": "房間已保留，請於期限內完成付款。"
+    "success": "房間已保留，請於期限內完成付款。",
+    "expiresIn": "剩餘 {time}",
+    "cancel": "取消保留",
+    "status": {
+      "PENDING_PAYMENT": "等待付款",
+      "CONFIRMED": "訂房已確認",
+      "CANCELLED": "訂房已取消",
+      "EXPIRED": "保留已過期"
+    }
   },
   "footer": {
     "address": "台灣・台北",

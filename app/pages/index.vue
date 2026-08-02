@@ -17,6 +17,25 @@ const guestName = ref('')
 const guestEmail = ref('')
 const reservationStore = useReservationStore()
 const propertyId = '00000000-0000-4000-8000-000000000001'
+const now = ref(Date.now())
+let expiryTimer: ReturnType<typeof setInterval> | undefined
+
+const reservationSecondsRemaining = computed(() => {
+  const expiresAt = reservationStore.currentReservation?.expiresAt
+  if (!expiresAt) return null
+  return Math.max(
+    0,
+    Math.floor((new Date(expiresAt).getTime() - now.value) / 1000),
+  )
+})
+
+const reservationTimeRemaining = computed(() => {
+  const seconds = reservationSecondsRemaining.value
+  if (seconds === null) return ''
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = String(seconds % 60).padStart(2, '0')
+  return `${minutes}:${remainingSeconds}`
+})
 
 const rooms = [
   {
@@ -89,6 +108,14 @@ function selectRoom(roomId: string) {
 }
 
 onBeforeUnmount(reservationStore.cancelAvailability)
+onMounted(() => {
+  expiryTimer = setInterval(() => {
+    now.value = Date.now()
+  }, 1000)
+})
+onBeforeUnmount(() => {
+  if (expiryTimer) clearInterval(expiryTimer)
+})
 
 async function createHold() {
   if (!selectedRoomId.value || !guestName.value || !guestEmail.value) return
@@ -102,6 +129,12 @@ async function createHold() {
     guestEmail: guestEmail.value,
     ratePlanName: 'Standard',
   })
+}
+
+async function cancelHold() {
+  const reservation = reservationStore.currentReservation
+  if (!reservation) return
+  await reservationStore.cancelReservation(reservation.id)
 }
 </script>
 
@@ -361,15 +394,62 @@ async function createHold() {
           {{ t('reservation.submit') }}
         </button>
       </form>
-      <p
+      <div
         v-if="reservationStore.currentReservation"
-        class="mt-4 text-sm text-moss"
+        class="mt-4 flex flex-col gap-3 border-l-2 border-clay bg-[#eeece5] p-4 text-sm text-moss md:flex-row md:items-center md:justify-between"
         role="status"
       >
-        {{ t('reservation.success') }}
-      </p>
+        <div>
+          <p class="font-medium text-ink">
+            {{
+              t(
+                `reservation.status.${reservationStore.currentReservation.status}`,
+              )
+            }}
+          </p>
+          <p
+            v-if="
+              reservationStore.currentReservation.status === 'PENDING_PAYMENT'
+            "
+          >
+            {{ t('reservation.success') }}
+            <span
+              v-if="reservationTimeRemaining"
+              class="ml-1 font-medium text-clay"
+            >
+              {{
+                t('reservation.expiresIn', { time: reservationTimeRemaining })
+              }}
+            </span>
+          </p>
+        </div>
+        <button
+          v-if="
+            reservationStore.currentReservation.status === 'PENDING_PAYMENT'
+          "
+          type="button"
+          class="border border-stone-400 px-4 py-2 text-xs text-moss transition hover:border-clay hover:text-clay focus:outline-none focus:ring-2 focus:ring-clay/50 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="
+            reservationStore.isLoading || reservationSecondsRemaining === 0
+          "
+          @click="cancelHold"
+        >
+          {{ t('reservation.cancel') }}
+        </button>
+        <p
+          v-if="reservationStore.errorCode"
+          class="text-xs text-clay md:col-span-2"
+          role="alert"
+        >
+          {{
+            t(`errors.${reservationStore.errorCode}`, {}, t('errors.UNKNOWN'))
+          }}
+        </p>
+      </div>
       <p
-        v-else-if="reservationStore.errorCode"
+        v-if="
+          !reservationStore.currentReservation && reservationStore.errorCode
+        "
         class="mt-4 text-sm text-clay"
         role="alert"
       >

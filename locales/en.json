@@ -93,7 +93,15 @@
     "name": "Name",
     "email": "Email",
     "submit": "Hold room",
-    "success": "Your room is held. Please complete payment before it expires."
+    "success": "Your room is held. Please complete payment before it expires.",
+    "expiresIn": "{time} remaining",
+    "cancel": "Cancel hold",
+    "status": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "CONFIRMED": "Reservation confirmed",
+      "CANCELLED": "Reservation cancelled",
+      "EXPIRED": "Hold expired"
+    }
   },
   "footer": {
     "address": "Taipei, Taiwan",
