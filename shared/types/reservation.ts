@@ -13,8 +13,10 @@ export type ReservationHold = {
   status: 'PENDING_PAYMENT'
   guestName: string
   guestEmail: string
+  guestCount: number
   checkInDate: string
   checkOutDate: string
+  totalAmount: number
   expiresAt: string | Date | null
 }
 
@@ -35,6 +37,14 @@ export type ReservationItemSnapshot = {
 }
 
 export type ReservationDetails = Reservation & {
+  nights: number
+  price: {
+    currency: 'TWD'
+    subtotal: number
+    taxes: number
+    discounts: number
+    total: number
+  }
   items: ReservationItemSnapshot[]
 }
 

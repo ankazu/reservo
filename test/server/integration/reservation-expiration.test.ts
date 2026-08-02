@@ -95,6 +95,14 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       getReservationRequestFingerprint(input),
     )
     reservationIds.push(reservation.id)
+
+    expect(reservation).toMatchObject({
+      guestCount: input.guests,
+      subtotalAmount: 2,
+      taxesAmount: 0,
+      discountsAmount: 0,
+      totalAmount: 2,
+    })
     await database
       .update(schema.reservations)
       .set({ expiresAt: new Date('2099-01-01T00:00:00Z') })

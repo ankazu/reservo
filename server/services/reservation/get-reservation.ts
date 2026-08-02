@@ -1,3 +1,4 @@
+import { getNightCount } from '../../../shared/types/reservation'
 import type { db } from '../../utils/db'
 import {
   findReservationById,
@@ -29,8 +30,18 @@ export async function getReservation(
       status: reservation.status,
       guestName: reservation.guestName,
       guestEmail: reservation.guestEmail,
+      guestCount: reservation.guestCount,
       checkInDate: reservation.checkInDate,
       checkOutDate: reservation.checkOutDate,
+      nights: getNightCount(reservation),
+      price: {
+        currency: 'TWD' as const,
+        subtotal: reservation.subtotalAmount,
+        taxes: reservation.taxesAmount,
+        discounts: reservation.discountsAmount,
+        total: reservation.totalAmount,
+      },
+      totalAmount: reservation.totalAmount,
       expiresAt: reservation.expiresAt,
       items,
     }

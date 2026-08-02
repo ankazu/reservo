@@ -63,8 +63,10 @@ export function createReservationsMock(scenario: MockScenario) {
         status: 'PENDING_PAYMENT',
         guestName: input.guestName,
         guestEmail: input.guestEmail,
+        guestCount: input.guests,
         checkInDate: input.checkInDate,
         checkOutDate: input.checkOutDate,
+        totalAmount: input.quantity * 4200,
         expiresAt:
           scenario === 'expired-reservation'
             ? new Date(Date.now() - 60_000).toISOString()

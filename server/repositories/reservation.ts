@@ -35,8 +35,13 @@ export async function findReservationById(
       status: schema.reservations.status,
       guestName: schema.reservations.guestName,
       guestEmail: schema.reservations.guestEmail,
+      guestCount: schema.reservations.guestCount,
       checkInDate: schema.reservations.checkInDate,
       checkOutDate: schema.reservations.checkOutDate,
+      subtotalAmount: schema.reservations.subtotalAmount,
+      taxesAmount: schema.reservations.taxesAmount,
+      discountsAmount: schema.reservations.discountsAmount,
+      totalAmount: schema.reservations.totalAmount,
       expiresAt: schema.reservations.expiresAt,
     })
     .from(schema.reservations)

@@ -1,4 +1,5 @@
 import { getNightCount, getStayDates } from '../../../shared/types/reservation'
+import { calculatePriceQuote } from '../../../shared/utils/pricing'
 import { getReservationRequestFingerprint } from '../../../shared/utils/reservation-request'
 import type { CreateReservationInput } from './types'
 import {
@@ -59,6 +60,11 @@ export async function createReservationHold(
       }
 
       const nights = getNightCount(input)
+      const quote = calculatePriceQuote({
+        nightlyPrice: roomType.nightlyPrice,
+        nights,
+        quantity: input.quantity,
+      })
       await provisionInventoryForStay(tx, input.roomTypeId, getStayDates(input))
       const inventory = await lockInventoryForStay(
         tx,
@@ -108,8 +114,13 @@ export async function createReservationHold(
         propertyId: input.propertyId,
         guestName: input.guestName,
         guestEmail: input.guestEmail,
+        guestCount: input.guests,
         checkInDate: input.checkInDate,
         checkOutDate: input.checkOutDate,
+        subtotalAmount: quote.subtotal,
+        taxesAmount: quote.taxes,
+        discountsAmount: quote.discounts,
+        totalAmount: quote.total,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
         idempotencyKey,
         requestFingerprint,
