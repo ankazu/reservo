@@ -113,7 +113,7 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       taxesAmount: 0,
       discountsAmount: 0,
       totalAmount: 2,
-      cancellableUntil: null,
+      cancellableUntil: new Date('2099-03-31T16:00:00.000Z'),
     })
     await database
       .update(schema.reservations)
@@ -269,5 +269,32 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
     await expect(
       transitionReservation(database, reservation.id, 'CANCELLED'),
     ).resolves.toMatchObject({ status: 'CANCELLED' })
+
+    const inventory = await database
+      .select()
+      .from(schema.roomInventory)
+      .where(
+        and(
+          eq(schema.roomInventory.roomTypeId, roomTypeId),
+          inArray(schema.roomInventory.stayDate, [checkInDate, '2099-04-02']),
+        ),
+      )
+    expect(inventory.every((row) => row.reservedQuantity === 0)).toBe(true)
+
+    await expect(
+      transitionReservation(database, reservation.id, 'CANCELLED'),
+    ).resolves.toMatchObject({ status: 'CANCELLED' })
+    const repeatedInventory = await database
+      .select()
+      .from(schema.roomInventory)
+      .where(
+        and(
+          eq(schema.roomInventory.roomTypeId, roomTypeId),
+          inArray(schema.roomInventory.stayDate, [checkInDate, '2099-04-02']),
+        ),
+      )
+    expect(repeatedInventory.every((row) => row.reservedQuantity === 0)).toBe(
+      true,
+    )
   })
 })

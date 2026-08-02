@@ -129,6 +129,16 @@ export async function findRoomType(tx: Transaction, roomTypeId: string) {
   return rows[0]
 }
 
+export async function findProperty(tx: Transaction, propertyId: string) {
+  const rows = await tx
+    .select({ timezone: schema.properties.timezone })
+    .from(schema.properties)
+    .where(eq(schema.properties.id, propertyId))
+    .limit(1)
+
+  return rows[0]
+}
+
 export async function lockReservation(tx: Transaction, reservationId: string) {
   const rows = await tx
     .select()

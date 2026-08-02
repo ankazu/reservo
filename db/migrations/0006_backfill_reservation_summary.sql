@@ -20,9 +20,10 @@ SET
   taxes_amount = summary.taxes_amount,
   discounts_amount = summary.discounts_amount,
   total_amount = summary.subtotal_amount + summary.taxes_amount - summary.discounts_amount,
-  cancellable_until = r.check_in_date::timestamp AT TIME ZONE 'Asia/Taipei'
-FROM reservation_summary summary
-WHERE r.id = summary.id;
+  cancellable_until = r.check_in_date::timestamp AT TIME ZONE p.timezone
+FROM reservation_summary summary, "properties" p
+WHERE r.id = summary.id
+  AND p.id = r.property_id;
 
 ALTER TABLE "reservations"
   ALTER COLUMN "cancellable_until" SET NOT NULL;

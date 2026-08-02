@@ -4,7 +4,11 @@ import type {
   Reservation,
   ReservationHold,
 } from '~~/shared/types/reservation'
-import { getCancellableUntil, getNightCount } from '~~/shared/types/reservation'
+import {
+  canTransitionReservation,
+  getCancellableUntil,
+  getNightCount,
+} from '~~/shared/types/reservation'
 import { calculatePriceQuote } from '~~/shared/utils/pricing'
 import { getReservationRequestFingerprint } from '~~/shared/utils/reservation-request'
 import type { MockScenario } from './scenario'
@@ -73,7 +77,10 @@ export function createReservationsMock(scenario: MockScenario) {
           nights: getNightCount(input),
           quantity: input.quantity,
         }).total,
-        cancellableUntil: getCancellableUntil(input.checkInDate).toISOString(),
+        cancellableUntil: getCancellableUntil(
+          input.checkInDate,
+          'Asia/Taipei',
+        ).toISOString(),
         expiresAt:
           scenario === 'expired-reservation'
             ? new Date(Date.now() - 60_000).toISOString()
@@ -100,13 +107,7 @@ export function createReservationsMock(scenario: MockScenario) {
         return { success: true, data: reservation as Reservation }
       }
 
-      const allowed: Record<Reservation['status'], Reservation['status'][]> = {
-        PENDING_PAYMENT: ['CONFIRMED', 'CANCELLED', 'EXPIRED'],
-        CONFIRMED: ['CANCELLED'],
-        CANCELLED: [],
-        EXPIRED: [],
-      }
-      if (!allowed[reservation.status].includes(status)) {
+      if (!canTransitionReservation(reservation.status, status)) {
         return {
           success: false,
           error: {

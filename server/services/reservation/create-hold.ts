@@ -10,6 +10,7 @@ import {
   createReservation,
   createReservationItem,
   findReservationByIdempotencyKey,
+  findProperty,
   findRoomType,
   lockInventoryForStay,
   provisionInventoryForStay,
@@ -56,6 +57,7 @@ export async function createReservationHold(
       }
 
       const roomType = await findRoomType(tx, input.roomTypeId)
+      const property = await findProperty(tx, input.propertyId)
       if (!roomType || roomType.propertyId !== input.propertyId) {
         throw new ReservationServiceError('ROOM_TYPE_NOT_FOUND')
       }
@@ -125,7 +127,10 @@ export async function createReservationHold(
         taxesAmount: quote.taxes,
         discountsAmount: quote.discounts,
         totalAmount: quote.total,
-        cancellableUntil: getCancellableUntil(input.checkInDate),
+        cancellableUntil: getCancellableUntil(
+          input.checkInDate,
+          property?.timezone ?? 'Asia/Taipei',
+        ),
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
         idempotencyKey,
         requestFingerprint,
