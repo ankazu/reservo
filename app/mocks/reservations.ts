@@ -7,6 +7,7 @@ import type {
 import { getCancellableUntil, getNightCount } from '~~/shared/types/reservation'
 import { calculatePriceQuote } from '~~/shared/utils/pricing'
 import { getReservationRequestFingerprint } from '~~/shared/utils/reservation-request'
+import { canTransitionReservation } from '~~/server/services/reservation/rules'
 import type { MockScenario } from './scenario'
 
 type MockReservation = ReservationHold | Reservation
@@ -100,12 +101,7 @@ export function createReservationsMock(scenario: MockScenario) {
         return { success: true, data: reservation as Reservation }
       }
 
-      const canTransition =
-        (status === 'CONFIRMED' && reservation.status === 'PENDING_PAYMENT') ||
-        (status === 'EXPIRED' && reservation.status === 'PENDING_PAYMENT') ||
-        (status === 'CANCELLED' &&
-          ['PENDING_PAYMENT', 'CONFIRMED'].includes(reservation.status))
-      if (!canTransition) {
+      if (!canTransitionReservation(reservation.status, status)) {
         return {
           success: false,
           error: {

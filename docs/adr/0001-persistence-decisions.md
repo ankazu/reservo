@@ -67,6 +67,8 @@ reservation is cancellable strictly before the check-in date at 00:00 in the
 fixed MVP timezone `Asia/Taipei`; the check-in instant itself is not
 cancellable. New reservations persist this timestamp, and cancellation
 transitions enforce it. The column is non-null for persisted reservations.
+Migration `0009_normalize_cancellation_timezone` corrects existing rows in
+databases that previously derived this value from a property's timezone.
 
 ## Consequences
 

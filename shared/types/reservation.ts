@@ -1,3 +1,5 @@
+import { MVP_CANCELLATION_TIMEZONE_OFFSET } from '../constants/reservation-policy'
+
 export const reservationStatuses = [
   'PENDING_PAYMENT',
   'CONFIRMED',
@@ -84,5 +86,5 @@ export function getStayDates(dateRange: DateRange): string[] {
 }
 
 export function getCancellableUntil(checkInDate: string): Date {
-  return new Date(`${checkInDate}T00:00:00+08:00`)
+  return new Date(`${checkInDate}T00:00:00${MVP_CANCELLATION_TIMEZONE_OFFSET}`)
 }

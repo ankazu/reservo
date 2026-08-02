@@ -57,7 +57,7 @@
 | 訂房過期                            | ✅   | 支援單筆與 maintenance 批次過期。                                       |
 | 依 ID 取得訂房詳情 API              | ✅   | `GET /api/reservations/:reservationId`，包含 item snapshots。           |
 | 訂房總額持久化                      | ✅   | migrations `0005`/`0006` 保存並回填 `guest_count` 與 TWD 金額摘要；hold 建立時由 server-side quote 寫入。 |
-| `guest_count` / `cancellable_until` | ✅   | `guest_count` 與 `cancellable_until` 已持久化；取消期限為入住日 00:00（Asia/Taipei）。 |
+| `guest_count` / `cancellable_until` | ✅   | `guest_count` 與 `cancellable_until` 已持久化；取消期限為入住日 00:00（固定 Asia/Taipei），migration `0009` 會正規化既有 rows。 |
 | 真正付款 provider                   | ⛔   | ADR 明確排除於目前 MVP；目前保留 fake confirmation。                    |
 
 ### D. 使用者介面與 API client
@@ -78,7 +78,7 @@
 
 | 項目                                      | 狀態 | 說明                                                                  |
 | ----------------------------------------- | ---- | --------------------------------------------------------------------- |
-| Service 單元測試                          | ✅   | 目前 `npm test` 有 46 passed。                                        |
+| Service 單元測試                          | ✅   | 目前 `npm test` 有 48 passed。                                        |
 | PostgreSQL concurrency tests              | 🟡   | 測試已寫；未設定 `DATABASE_URL` 時會 skip，只有設定資料庫執行後才視為已驗證。 |
 | API route 行為測試                        | ⬜   | 尚未完整覆蓋 HTTP status 與 ApiResponse。                             |
 | Reservation item historical snapshot test | ✅   | integration test 會直接讀取 PostgreSQL reservation 與 item rows 驗證摘要及歷史 snapshot。 |

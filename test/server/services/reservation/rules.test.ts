@@ -9,6 +9,7 @@ import {
 } from '../../../../server/services/reservation/rules'
 import { summarizeAvailability } from '../../../../server/services/reservation/availability'
 import { calculatePriceQuote } from '../../../../shared/utils/pricing'
+import { getCancellableUntil } from '../../../../shared/types/reservation'
 
 describe('reservation rules', () => {
   it('counts nights using a half-open date range', () => {
@@ -72,6 +73,15 @@ describe('reservation rules', () => {
     expect(
       canCancelReservation(new Date(deadline.getTime() - 1), deadline),
     ).toBe(false)
+  })
+
+  it('uses the fixed Asia/Taipei midnight cancellation deadline', () => {
+    expect(getCancellableUntil('2026-08-10')).toEqual(
+      new Date('2026-08-09T16:00:00.000Z'),
+    )
+    expect(getCancellableUntil('2026-08-10').getTime()).toBe(
+      new Date('2026-08-09T16:00:00.000Z').getTime(),
+    )
   })
 
   it('uses half-open stay dates when summarizing availability', () => {
