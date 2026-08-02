@@ -24,6 +24,28 @@ export async function findReservationByIdempotencyKey(
   return rows[0]
 }
 
+export async function findReservationById(
+  tx: Transaction,
+  reservationId: string,
+) {
+  const rows = await tx
+    .select({
+      id: schema.reservations.id,
+      propertyId: schema.reservations.propertyId,
+      status: schema.reservations.status,
+      guestName: schema.reservations.guestName,
+      guestEmail: schema.reservations.guestEmail,
+      checkInDate: schema.reservations.checkInDate,
+      checkOutDate: schema.reservations.checkOutDate,
+      expiresAt: schema.reservations.expiresAt,
+    })
+    .from(schema.reservations)
+    .where(eq(schema.reservations.id, reservationId))
+    .limit(1)
+
+  return rows[0]
+}
+
 export async function lockInventoryForStay(
   tx: Transaction,
   roomTypeId: string,

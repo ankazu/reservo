@@ -89,6 +89,21 @@ describe('fetch API client', () => {
 })
 
 describe('reservation API module', () => {
+  it('gets reservation details by id', async () => {
+    const client = createFakeClient()
+    client.get.mockResolvedValue({
+      success: true,
+      data: { id: 'reservation-1', items: [] },
+    })
+
+    await createReservationsApi(client).getReservation('reservation-1')
+
+    expect(client.get).toHaveBeenCalledWith(
+      '/api/reservations/reservation-1',
+      undefined,
+    )
+  })
+
   it('sends the idempotency key and forwards abort signals', async () => {
     const client = createFakeClient()
     client.post.mockResolvedValue({

@@ -4,6 +4,7 @@ import { getReservationRequestFingerprint } from '~~/shared/utils/reservation-re
 import type {
   CreateReservationHoldInput,
   Reservation,
+  ReservationDetails,
   ReservationHold,
 } from '~~/shared/types/reservation'
 import { AppError } from './errors'
@@ -18,6 +19,17 @@ async function unwrap<T>(request: Promise<ApiResponse<T>>): Promise<T> {
 
 export function createReservationsApi(client: ApiClient) {
   return {
+    getReservation(
+      id: string,
+      options?: RequestOptions,
+    ): Promise<ReservationDetails> {
+      return unwrap(
+        client.get<ApiResponse<ReservationDetails>>(
+          API_ENDPOINTS.reservation(id),
+          options,
+        ),
+      )
+    },
     createReservationHold(
       input: CreateReservationHoldInput,
       idempotencyKey: string,

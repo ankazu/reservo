@@ -22,6 +22,22 @@ export type Reservation = Omit<ReservationHold, 'status'> & {
   status: ReservationStatus
 }
 
+export type ReservationItemSnapshot = {
+  id: string
+  reservationId: string
+  roomTypeId: string
+  roomTypeNameSnapshot: string
+  ratePlanNameSnapshot: string
+  nightlyPrice: number
+  taxes: number
+  discounts: number
+  quantity: number
+}
+
+export type ReservationDetails = Reservation & {
+  items: ReservationItemSnapshot[]
+}
+
 export type CreateReservationHoldInput = DateRange & {
   propertyId: string
   roomTypeId: string
