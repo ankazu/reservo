@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   canTransitionReservation,
+  canCancelReservation,
   getAvailableQuantity,
   getNightCount,
   getStayDates,
@@ -60,6 +61,17 @@ describe('reservation rules', () => {
   it('does not allow terminal reservations to transition again', () => {
     expect(canTransitionReservation('CANCELLED', 'EXPIRED')).toBe(false)
     expect(canTransitionReservation('EXPIRED', 'CANCELLED')).toBe(false)
+  })
+
+  it('allows cancellation strictly before its deadline', () => {
+    const deadline = new Date('2026-08-10T00:00:00Z')
+    expect(
+      canCancelReservation(new Date(deadline.getTime() + 1), deadline),
+    ).toBe(true)
+    expect(canCancelReservation(deadline, deadline)).toBe(false)
+    expect(
+      canCancelReservation(new Date(deadline.getTime() - 1), deadline),
+    ).toBe(false)
   })
 
   it('uses half-open stay dates when summarizing availability', () => {

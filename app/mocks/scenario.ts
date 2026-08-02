@@ -1,6 +1,7 @@
 import type { ApiClient } from '../api/client'
 import { API_ENDPOINTS } from '~~/shared/constants/api'
 import type { ReservationSearchInput } from '~~/shared/types/availability'
+import type { ReservationStatus } from '~~/shared/types/reservation'
 import { createAvailabilityMock } from './availability'
 import { createReservationsMock } from './reservations'
 
@@ -33,7 +34,15 @@ export function createMockApiClient(
           options?.headers?.['Idempotency-Key'] ?? '',
         ) as Promise<T>
       }
-      return reservations.transition(path) as Promise<T>
+      const statusByEndpoint: Record<string, ReservationStatus> = {
+        [API_ENDPOINTS.confirmReservation('mock-1')]: 'CONFIRMED',
+        [API_ENDPOINTS.cancelReservation('mock-1')]: 'CANCELLED',
+        [API_ENDPOINTS.expireReservation('mock-1')]: 'EXPIRED',
+      }
+      const endpoint = path.replace(/mock-[^/]+/, 'mock-1')
+      const targetStatus = statusByEndpoint[endpoint]
+      if (!targetStatus) throw new Error(`Unknown mock POST endpoint: ${path}`)
+      return reservations.transitionTo(targetStatus) as Promise<T>
     },
   }
 }

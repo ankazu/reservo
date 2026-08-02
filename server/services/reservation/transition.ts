@@ -8,7 +8,7 @@ import {
   Transaction,
   updateReservationStatus,
 } from '../../repositories/reservation'
-import { canTransitionReservation } from './rules'
+import { canCancelReservation, canTransitionReservation } from './rules'
 import { getNightCount } from '../../../shared/types/reservation'
 import type { db } from '../../utils/db'
 
@@ -21,6 +21,7 @@ export class ReservationTransitionError extends Error {
       | 'INVALID_STATUS_TRANSITION'
       | 'RESERVATION_NOT_EXPIRED'
       | 'RESERVATION_EXPIRED'
+      | 'RESERVATION_CANCELLATION_EXPIRED'
       | 'INVENTORY_RELEASE_FAILED',
   ) {
     super(code)
@@ -93,6 +94,12 @@ async function transitionReservationInTransaction(
     reservation.expiresAt <= now
   ) {
     throw new ReservationTransitionError('RESERVATION_EXPIRED')
+  }
+  if (
+    targetStatus === 'CANCELLED' &&
+    !canCancelReservation(reservation.cancellableUntil, now)
+  ) {
+    throw new ReservationTransitionError('RESERVATION_CANCELLATION_EXPIRED')
   }
   if (targetStatus === 'CANCELLED' || targetStatus === 'EXPIRED') {
     const items = await findReservationItems(tx, reservation.id)

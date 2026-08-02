@@ -47,9 +47,7 @@ describe('mock scenarios', () => {
   it('enforces expiry and legal transition rules', async () => {
     const expired = createReservationsMock('expired-reservation')
     await expired.createHold(input, 'expired-key')
-    const expiredConfirm = await expired.transition(
-      '/api/reservations/mock-1/confirm',
-    )
+    const expiredConfirm = await expired.transitionTo('CONFIRMED')
     expect(expiredConfirm).toMatchObject({
       success: false,
       error: { code: 'RESERVATION_EXPIRED' },
@@ -57,15 +55,11 @@ describe('mock scenarios', () => {
 
     const active = createReservationsMock('success')
     await active.createHold(input, 'active-key')
-    expect(
-      await active.transition('/api/reservations/mock-1/confirm'),
-    ).toMatchObject({
+    expect(await active.transitionTo('CONFIRMED')).toMatchObject({
       success: true,
       data: { status: 'CONFIRMED' },
     })
-    expect(
-      await active.transition('/api/reservations/mock-1/expire'),
-    ).toMatchObject({
+    expect(await active.transitionTo('EXPIRED')).toMatchObject({
       success: false,
       error: { code: 'INVALID_STATUS_TRANSITION' },
     })

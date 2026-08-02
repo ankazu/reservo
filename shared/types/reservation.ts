@@ -17,7 +17,7 @@ export type ReservationHold = {
   checkInDate: string
   checkOutDate: string
   totalAmount: number
-  cancellableUntil: string | Date | null
+  cancellableUntil: string | Date
   expiresAt: string | Date | null
 }
 
@@ -81,4 +81,8 @@ export function getStayDates(dateRange: DateRange): string[] {
     date.setUTCDate(date.getUTCDate() + index)
     return date.toISOString().slice(0, 10)
   })
+}
+
+export function getCancellableUntil(checkInDate: string): Date {
+  return new Date(`${checkInDate}T00:00:00+08:00`)
 }

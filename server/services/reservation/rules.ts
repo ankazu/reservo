@@ -23,4 +23,11 @@ export function canTransitionReservation(
   return allowed[from].includes(to)
 }
 
+export function canCancelReservation(
+  cancellableUntil: Date,
+  now: Date,
+): boolean {
+  return cancellableUntil > now
+}
+
 export { getNightCount, getStayDates }

@@ -243,4 +243,31 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
     expect(confirmed.status).toBe('CONFIRMED')
     expect(cancelled.status).toBe('CANCELLED')
   })
+
+  it('rejects cancellation at and after the cancellation deadline', async () => {
+    const reservation = await createReservationHold(
+      database,
+      input,
+      `integration-cancel-deadline-${crypto.randomUUID()}`,
+      getReservationRequestFingerprint(input),
+    )
+    reservationIds.push(reservation.id)
+
+    await database
+      .update(schema.reservations)
+      .set({ cancellableUntil: new Date('2020-01-01T00:00:00Z') })
+      .where(eq(schema.reservations.id, reservation.id))
+
+    await expect(
+      transitionReservation(database, reservation.id, 'CANCELLED'),
+    ).rejects.toThrow('RESERVATION_CANCELLATION_EXPIRED')
+
+    await database
+      .update(schema.reservations)
+      .set({ cancellableUntil: new Date('2199-01-01T00:00:00Z') })
+      .where(eq(schema.reservations.id, reservation.id))
+    await expect(
+      transitionReservation(database, reservation.id, 'CANCELLED'),
+    ).resolves.toMatchObject({ status: 'CANCELLED' })
+  })
 })

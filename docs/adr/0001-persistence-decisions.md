@@ -60,6 +60,14 @@ Payment-provider integration is outside the MVP. A newly created reservation is
 operation that can later be connected to a payment event. No card or payment
 credentials are stored by Reservo.
 
+### Cancellation policy
+
+The MVP uses `reservations.cancellable_until` for the cancellation policy. A
+reservation is cancellable strictly before the property's check-in date at
+00:00 in `Asia/Taipei`; the check-in instant itself is not cancellable. New
+reservations persist this timestamp, and cancellation transitions enforce it.
+The column is non-null for persisted reservations.
+
 ## Consequences
 
 - PostgreSQL transactions and row locks remain in the reservation service and

@@ -4,7 +4,7 @@ import type {
   Reservation,
   ReservationHold,
 } from '~~/shared/types/reservation'
-import { getNightCount } from '~~/shared/types/reservation'
+import { getCancellableUntil, getNightCount } from '~~/shared/types/reservation'
 import { calculatePriceQuote } from '~~/shared/utils/pricing'
 import { getReservationRequestFingerprint } from '~~/shared/utils/reservation-request'
 import type { MockScenario } from './scenario'
@@ -73,7 +73,7 @@ export function createReservationsMock(scenario: MockScenario) {
           nights: getNightCount(input),
           quantity: input.quantity,
         }).total,
-        cancellableUntil: null,
+        cancellableUntil: getCancellableUntil(input.checkInDate).toISOString(),
         expiresAt:
           scenario === 'expired-reservation'
             ? new Date(Date.now() - 60_000).toISOString()
@@ -82,7 +82,9 @@ export function createReservationsMock(scenario: MockScenario) {
       holds.set(idempotencyKey, { fingerprint, reservation })
       return { success: true, data: reservation }
     },
-    async transition(path: string): Promise<ApiResponse<Reservation>> {
+    async transitionTo(
+      status: Reservation['status'],
+    ): Promise<ApiResponse<Reservation>> {
       const entry = [...holds.values()][0]
       if (!entry) {
         return {
@@ -93,11 +95,6 @@ export function createReservationsMock(scenario: MockScenario) {
           },
         }
       }
-      const status = path.endsWith('/confirm')
-        ? 'CONFIRMED'
-        : path.endsWith('/cancel')
-          ? 'CANCELLED'
-          : 'EXPIRED'
       const reservation = entry.reservation
       if (reservation.status === status) {
         return { success: true, data: reservation as Reservation }
@@ -143,6 +140,18 @@ export function createReservationsMock(scenario: MockScenario) {
           error: {
             code: 'RESERVATION_NOT_EXPIRED',
             message: 'RESERVATION_NOT_EXPIRED',
+          },
+        }
+      }
+      if (
+        status === 'CANCELLED' &&
+        new Date(reservation.cancellableUntil).getTime() <= Date.now()
+      ) {
+        return {
+          success: false,
+          error: {
+            code: 'RESERVATION_CANCELLATION_EXPIRED',
+            message: 'RESERVATION_CANCELLATION_EXPIRED',
           },
         }
       }
