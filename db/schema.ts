@@ -34,6 +34,7 @@ export const roomTypes = pgTable('room_types', {
   name: text('name').notNull(),
   description: text('description').notNull(),
   maxGuests: integer('max_guests').notNull(),
+  nightlyPrice: integer('nightly_price').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

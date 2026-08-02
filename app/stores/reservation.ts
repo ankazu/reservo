@@ -13,9 +13,6 @@ type CreateHoldInput = DateRange & {
   guestName: string
   guestEmail: string
   ratePlanName: string
-  nightlyPrice: number
-  taxes?: number
-  discounts?: number
 }
 
 export const useReservationStore = defineStore('reservation', () => {
@@ -28,6 +25,8 @@ export const useReservationStore = defineStore('reservation', () => {
   const currentReservation = ref<ReservationHold | null>(null)
   const isLoading = ref(false)
   const errorCode = ref<string | null>(null)
+  const idempotencyKey = ref<string | null>(null)
+  const requestFingerprint = ref<string | null>(null)
 
   function setSearch(values: Partial<SearchState>) {
     search.value = { ...search.value, ...values }
@@ -37,12 +36,20 @@ export const useReservationStore = defineStore('reservation', () => {
     isLoading.value = true
     errorCode.value = null
 
+    const fingerprint = JSON.stringify(input)
+    if (requestFingerprint.value !== fingerprint) {
+      requestFingerprint.value = fingerprint
+      idempotencyKey.value = crypto.randomUUID()
+    }
+
     try {
       const response = await $fetch<ApiResponse<ReservationHold>>(
         '/api/reservations',
         {
           method: 'POST',
-          headers: { 'Idempotency-Key': crypto.randomUUID() },
+          headers: {
+            'Idempotency-Key': idempotencyKey.value ?? crypto.randomUUID(),
+          },
           body: input,
         },
       )
@@ -60,6 +67,8 @@ export const useReservationStore = defineStore('reservation', () => {
   function clearReservation() {
     currentReservation.value = null
     errorCode.value = null
+    idempotencyKey.value = null
+    requestFingerprint.value = null
   }
 
   return {

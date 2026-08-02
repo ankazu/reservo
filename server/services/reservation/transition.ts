@@ -8,12 +8,18 @@ import {
   updateReservationStatus,
 } from '../../repositories/reservation'
 import { canTransitionReservation } from './rules'
+import { getNightCount } from '../../../shared/types/reservation'
+import type { db } from '../../utils/db'
+
+type Database = NonNullable<typeof db>
 
 export class ReservationTransitionError extends Error {
   constructor(
     readonly code:
       | 'RESERVATION_NOT_FOUND'
       | 'INVALID_STATUS_TRANSITION'
+      | 'RESERVATION_NOT_EXPIRED'
+      | 'RESERVATION_EXPIRED'
       | 'INVENTORY_RELEASE_FAILED',
   ) {
     super(code)
@@ -21,6 +27,16 @@ export class ReservationTransitionError extends Error {
 }
 
 export async function transitionReservation(
+  database: Database,
+  reservationId: string,
+  targetStatus: ReservationStatus,
+) {
+  return database.transaction((tx) =>
+    transitionReservationInTransaction(tx, reservationId, targetStatus),
+  )
+}
+
+async function transitionReservationInTransaction(
   tx: Transaction,
   reservationId: string,
   targetStatus: ReservationStatus,
@@ -33,6 +49,21 @@ export async function transitionReservation(
   if (reservation.status === targetStatus) return reservation
   if (!canTransitionReservation(reservation.status, targetStatus)) {
     throw new ReservationTransitionError('INVALID_STATUS_TRANSITION')
+  }
+
+  const now = new Date()
+  if (
+    targetStatus === 'EXPIRED' &&
+    (!reservation.expiresAt || reservation.expiresAt > now)
+  ) {
+    throw new ReservationTransitionError('RESERVATION_NOT_EXPIRED')
+  }
+  if (
+    targetStatus === 'CONFIRMED' &&
+    reservation.expiresAt !== null &&
+    reservation.expiresAt <= now
+  ) {
+    throw new ReservationTransitionError('RESERVATION_EXPIRED')
   }
 
   if (targetStatus === 'CANCELLED' || targetStatus === 'EXPIRED') {
@@ -57,15 +88,4 @@ export async function transitionReservation(
   }
 
   return updateReservationStatus(tx, reservation.id, targetStatus)
-}
-
-function getNightCount(reservation: {
-  checkInDate: string
-  checkOutDate: string
-}) {
-  return Math.round(
-    (Date.parse(`${reservation.checkOutDate}T00:00:00Z`) -
-      Date.parse(`${reservation.checkInDate}T00:00:00Z`)) /
-      86_400_000,
-  )
 }

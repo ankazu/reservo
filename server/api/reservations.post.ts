@@ -1,10 +1,4 @@
-import {
-  createError,
-  defineEventHandler,
-  getHeader,
-  readBody,
-  setResponseStatus,
-} from 'h3'
+import { defineEventHandler, getHeader, readBody, setResponseStatus } from 'h3'
 
 import { createReservationSchema } from '../../shared/schemas/reservation'
 import type { ApiResponse } from '../../shared/types/api'
@@ -12,7 +6,6 @@ import {
   createReservationHold,
   ReservationServiceError,
 } from '../services/reservation/create-hold'
-import { findReservationByIdempotencyKey } from '../repositories/reservation'
 import { db } from '../utils/db'
 
 export default defineEventHandler(
@@ -53,8 +46,10 @@ export default defineEventHandler(
     }
 
     try {
-      const reservation = await db.transaction((tx) =>
-        createReservationHold(tx, parsed.data, idempotencyKey),
+      const reservation = await createReservationHold(
+        db,
+        parsed.data,
+        idempotencyKey,
       )
       return { success: true, data: reservation }
     } catch (error) {
@@ -65,29 +60,11 @@ export default defineEventHandler(
           error: { code: error.code, message: error.code },
         }
       }
-      if (isUniqueViolation(error)) {
-        const existing = await db.transaction((tx) =>
-          findReservationByIdempotencyKey(
-            tx,
-            parsed.data.propertyId,
-            idempotencyKey,
-          ),
-        )
-        if (existing) return { success: true, data: existing }
+      setResponseStatus(event, 500)
+      return {
+        success: false,
+        error: { code: 'RESERVATION_FAILED', message: 'RESERVATION_FAILED' },
       }
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'reservation_failed',
-      })
     }
   },
 )
-
-function isUniqueViolation(error: unknown): error is { code: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    error.code === '23505'
-  )
-}

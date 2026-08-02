@@ -124,6 +124,8 @@ export async function releaseInventory(
       ),
     )
 
+    .returning({ id: schema.roomInventory.id })
+
   return rows.length === 1
 }
 

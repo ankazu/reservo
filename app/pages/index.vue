@@ -1,12 +1,25 @@
 <script setup lang="ts">
 const { t, locale, setLocale } = useI18n()
 
-const today = new Date().toISOString().slice(0, 10)
+const today = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Taipei',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).format(new Date())
 const checkIn = ref(today)
 const checkOut = ref('')
 const guests = ref(2)
 const hasSearched = ref(false)
 const formError = ref('')
+const availability = ref<
+  Record<string, { available: boolean; availableQuantity: number }>
+>({})
+const selectedRoomId = ref<string | null>(null)
+const guestName = ref('')
+const guestEmail = ref('')
+const reservationStore = useReservationStore()
+const propertyId = '00000000-0000-4000-8000-000000000001'
 
 const rooms = [
   {
@@ -14,7 +27,7 @@ const rooms = [
     icon: '01',
     size: 28,
     beds: 1,
-    price: 4200,
+    roomTypeId: '00000000-0000-4000-8000-000000000101',
     accent: 'bg-[#d2b99e]',
   },
   {
@@ -22,7 +35,7 @@ const rooms = [
     icon: '02',
     size: 36,
     beds: 1,
-    price: 5800,
+    roomTypeId: '00000000-0000-4000-8000-000000000102',
     accent: 'bg-[#a8b9a5]',
   },
   {
@@ -30,17 +43,10 @@ const rooms = [
     icon: '03',
     size: 52,
     beds: 2,
-    price: 8600,
+    roomTypeId: '00000000-0000-4000-8000-000000000103',
     accent: 'bg-[#c78062]',
   },
 ]
-
-const formattedPrice = (price: number) =>
-  new Intl.NumberFormat(locale.value, {
-    style: 'currency',
-    currency: t('app.currency'),
-    maximumFractionDigits: 0,
-  }).format(price)
 
 async function toggleLocale() {
   const nextLocale = locale.value === 'zh-TW' ? 'en' : 'zh-TW'
@@ -48,14 +54,60 @@ async function toggleLocale() {
   locale.value = nextLocale
 }
 
-function submitSearch() {
+async function submitSearch() {
   formError.value = ''
   if (!checkIn.value || !checkOut.value || checkOut.value <= checkIn.value) {
     formError.value = t('search.errors.dateRange')
     hasSearched.value = false
     return
   }
-  hasSearched.value = true
+  try {
+    const results = await Promise.all(
+      rooms.map(async (room) => {
+        const result = await $fetch<{
+          success: boolean
+          data?: { available: boolean; availableQuantity: number }
+        }>('/api/availability', {
+          query: {
+            roomTypeId: room.roomTypeId,
+            checkInDate: checkIn.value,
+            checkOutDate: checkOut.value,
+            quantity: 1,
+          },
+        })
+        return [
+          room.roomTypeId,
+          result.success && result.data
+            ? result.data
+            : { available: false, availableQuantity: 0 },
+        ] as const
+      }),
+    )
+    availability.value = Object.fromEntries(results)
+    hasSearched.value = true
+  } catch {
+    formError.value = t('search.errors.unavailable')
+    hasSearched.value = false
+  }
+}
+
+function selectRoom(roomId: string) {
+  if (!availability.value[roomId]?.available) return
+  selectedRoomId.value = roomId
+}
+
+async function createHold() {
+  if (!selectedRoomId.value || !guestName.value || !guestEmail.value) return
+  await reservationStore.createHold({
+    propertyId,
+    roomTypeId: selectedRoomId.value,
+    checkInDate: checkIn.value,
+    checkOutDate: checkOut.value,
+    quantity: 1,
+    guestName: guestName.value,
+    guestEmail: guestEmail.value,
+    ratePlanName: 'Standard',
+  })
 }
 </script>
 
@@ -244,12 +296,16 @@ function submitSearch() {
               <h3 class="font-serif text-[23px] font-medium">
                 {{ t(`rooms.${room.key}.name`) }}
               </h3>
-              <span class="whitespace-nowrap text-xs"
-                >{{ formattedPrice(room.price)
-                }}<small class="text-[9px] text-moss">
-                  / {{ t('rooms.night') }}</small
-                ></span
+              <span
+                v-if="availability[room.roomTypeId]"
+                class="whitespace-nowrap text-xs"
               >
+                {{
+                  availability[room.roomTypeId].available
+                    ? t('rooms.available')
+                    : t('rooms.unavailable')
+                }}
+              </span>
             </div>
             <p class="min-h-[42px] text-[13px] leading-6 text-moss">
               {{ t(`rooms.${room.key}.description`) }}
@@ -264,13 +320,51 @@ function submitSearch() {
             <button
               class="pt-5 text-xs text-clay hover:underline"
               type="button"
-              @click="submitSearch"
+              @click="selectRoom(room.roomTypeId)"
             >
-              {{ t('rooms.choose') }} <span class="ml-3">↗</span>
+              {{
+                availability[room.roomTypeId]?.available
+                  ? t('rooms.choose')
+                  : t('rooms.unavailable')
+              }}
+              <span class="ml-3">↗</span>
             </button>
           </div>
         </article>
       </div>
+      <form
+        v-if="selectedRoomId"
+        class="mt-8 grid gap-3 border border-stone-300 bg-[#eeece5] p-5 md:grid-cols-[1fr_1fr_auto]"
+        @submit.prevent="createHold"
+      >
+        <input
+          v-model="guestName"
+          :placeholder="t('reservation.name')"
+          required
+          class="border-b border-stone-300 bg-transparent p-2 outline-none"
+        />
+        <input
+          v-model="guestEmail"
+          :placeholder="t('reservation.email')"
+          type="email"
+          required
+          class="border-b border-stone-300 bg-transparent p-2 outline-none"
+        />
+        <button
+          type="submit"
+          class="bg-clay px-5 py-3 text-white"
+          :disabled="reservationStore.isLoading"
+        >
+          {{ t('reservation.submit') }}
+        </button>
+      </form>
+      <p
+        v-if="reservationStore.currentReservation"
+        class="mt-4 text-sm text-moss"
+        role="status"
+      >
+        {{ t('reservation.success') }}
+      </p>
     </section>
 
     <section

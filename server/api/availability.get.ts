@@ -2,8 +2,7 @@ import { defineEventHandler, getQuery, setResponseStatus } from 'h3'
 
 import { reservationSearchSchema } from '../../shared/schemas/reservation'
 import type { ApiResponse } from '../../shared/types/api'
-import { findInventoryForStay } from '../repositories/reservation'
-import { summarizeAvailability } from '../services/reservation/availability'
+import { getAvailability } from '../services/reservation/availability'
 import { db } from '../utils/db'
 
 export default defineEventHandler(
@@ -39,18 +38,17 @@ export default defineEventHandler(
       }
     }
 
-    const inventory = await db.transaction((tx) =>
-      findInventoryForStay(
-        tx,
-        parsed.data.roomTypeId,
-        parsed.data.checkInDate,
-        parsed.data.checkOutDate,
-      ),
-    )
-
-    return {
-      success: true,
-      data: summarizeAvailability(parsed.data, inventory),
+    try {
+      return {
+        success: true,
+        data: await getAvailability(db, parsed.data),
+      }
+    } catch {
+      setResponseStatus(event, 500)
+      return {
+        success: false,
+        error: { code: 'AVAILABILITY_FAILED', message: 'AVAILABILITY_FAILED' },
+      }
     }
   },
 )

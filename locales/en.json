@@ -29,7 +29,8 @@
     "guestUnit": "guests",
     "submit": "Search rooms",
     "errors": {
-      "dateRange": "Please choose a valid check-in and check-out date."
+      "dateRange": "Please choose a valid check-in and check-out date.",
+      "unavailable": "Availability is temporarily unavailable. Please try again."
     },
     "success": "Rooms found for {guests} guests."
   },
@@ -43,6 +44,8 @@
     "beds": "{count} beds",
     "guests": "{count} guests",
     "choose": "View room",
+    "available": "Available",
+    "unavailable": "Unavailable",
     "standard": {
       "name": "Sunroom",
       "description": "A simple, just-right room where the morning light wakes you."
@@ -61,6 +64,12 @@
     "title": "Not every journey needs an itinerary.",
     "description": "We believe a good stay should not take the lead from your journey. It is simply a light waiting when you return, a comfortable bed, and room to breathe.",
     "note": "One property · One currency · Stay well"
+  },
+  "reservation": {
+    "name": "Name",
+    "email": "Email",
+    "submit": "Hold room",
+    "success": "Your room is held. Please complete payment before it expires."
   },
   "footer": {
     "address": "Taipei, Taiwan",

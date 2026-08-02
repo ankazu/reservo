@@ -15,6 +15,13 @@
       "when": 1785652364033,
       "tag": "0001_noisy_tiger_shark",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785652364034,
+      "tag": "0002_seed_room_inventory",
+      "breakpoints": true
     }
   ]
 }

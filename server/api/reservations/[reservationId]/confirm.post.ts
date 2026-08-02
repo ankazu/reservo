@@ -32,8 +32,10 @@ export default defineEventHandler(
     }
 
     try {
-      const reservation = await db.transaction((tx) =>
-        transitionReservation(tx, reservationId, 'CONFIRMED'),
+      const reservation = await transitionReservation(
+        db,
+        reservationId,
+        'CONFIRMED',
       )
       return { success: true, data: reservation }
     } catch (error) {
@@ -47,7 +49,14 @@ export default defineEventHandler(
           error: { code: error.code, message: error.code },
         }
       }
-      throw error
+      setResponseStatus(event, 500)
+      return {
+        success: false,
+        error: {
+          code: 'RESERVATION_TRANSITION_FAILED',
+          message: 'RESERVATION_TRANSITION_FAILED',
+        },
+      }
     }
   },
 )
