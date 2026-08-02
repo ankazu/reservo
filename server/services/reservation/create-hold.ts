@@ -25,6 +25,7 @@ export class ReservationServiceError extends Error {
   constructor(
     readonly code:
       | 'ROOM_TYPE_NOT_FOUND'
+      | 'PROPERTY_NOT_FOUND'
       | 'GUEST_LIMIT_EXCEEDED'
       | 'INVENTORY_NOT_READY'
       | 'INSUFFICIENT_INVENTORY'
@@ -58,6 +59,9 @@ export async function createReservationHold(
 
       const roomType = await findRoomType(tx, input.roomTypeId)
       const property = await findProperty(tx, input.propertyId)
+      if (!property) {
+        throw new ReservationServiceError('PROPERTY_NOT_FOUND')
+      }
       if (!roomType || roomType.propertyId !== input.propertyId) {
         throw new ReservationServiceError('ROOM_TYPE_NOT_FOUND')
       }
@@ -127,10 +131,7 @@ export async function createReservationHold(
         taxesAmount: quote.taxes,
         discountsAmount: quote.discounts,
         totalAmount: quote.total,
-        cancellableUntil: getCancellableUntil(
-          input.checkInDate,
-          property?.timezone ?? 'Asia/Taipei',
-        ),
+        cancellableUntil: getCancellableUntil(input.checkInDate),
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
         idempotencyKey,
         requestFingerprint,

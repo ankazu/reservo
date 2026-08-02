@@ -63,10 +63,10 @@ credentials are stored by Reservo.
 ### Cancellation policy
 
 The MVP uses `reservations.cancellable_until` for the cancellation policy. A
-reservation is cancellable strictly before the property's check-in date at
-00:00 in `Asia/Taipei`; the check-in instant itself is not cancellable. New
-reservations persist this timestamp, and cancellation transitions enforce it.
-The column is non-null for persisted reservations.
+reservation is cancellable strictly before the check-in date at 00:00 in the
+fixed MVP timezone `Asia/Taipei`; the check-in instant itself is not
+cancellable. New reservations persist this timestamp, and cancellation
+transitions enforce it. The column is non-null for persisted reservations.
 
 ## Consequences
 

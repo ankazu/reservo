@@ -79,7 +79,7 @@
 | 項目                                      | 狀態 | 說明                                                                  |
 | ----------------------------------------- | ---- | --------------------------------------------------------------------- |
 | Service 單元測試                          | ✅   | 目前 `npm test` 有 46 passed。                                        |
-| PostgreSQL concurrency tests              | 🟡   | 測試已寫，尚未在設定 `DATABASE_URL` 的環境執行。                      |
+| PostgreSQL concurrency tests              | 🟡   | 測試已寫；未設定 `DATABASE_URL` 時會 skip，只有設定資料庫執行後才視為已驗證。 |
 | API route 行為測試                        | ⬜   | 尚未完整覆蓋 HTTP status 與 ApiResponse。                             |
 | Reservation item historical snapshot test | ✅   | integration test 會直接讀取 PostgreSQL reservation 與 item rows 驗證摘要及歷史 snapshot。 |
 | Playwright search-to-reservation          | ⬜   | 尚未加入。                                                            |

@@ -77,7 +77,10 @@ export default defineEventHandler(
       return { success: true, data: reservation }
     } catch (error) {
       if (error instanceof ReservationServiceError) {
-        setResponseStatus(event, 409)
+        setResponseStatus(
+          event,
+          error.code === 'PROPERTY_NOT_FOUND' ? 404 : 409,
+        )
         return {
           success: false,
           error: { code: error.code, message: error.code },

@@ -11,6 +11,7 @@
     "IDEMPOTENCY_PAYLOAD_MISMATCH": "This reservation request differs from the original submission.",
     "IDEMPOTENCY_FINGERPRINT_UNAVAILABLE": "This legacy reservation cannot be safely retried. Please create a new reservation.",
     "ROOM_TYPE_NOT_FOUND": "This room type could not be found.",
+    "PROPERTY_NOT_FOUND": "This property could not be found.",
     "GUEST_LIMIT_EXCEEDED": "This room cannot accommodate that many guests.",
     "AVAILABILITY_FAILED": "Availability is temporarily unavailable.",
     "DATABASE_UNAVAILABLE": "Availability is temporarily unavailable.",

@@ -131,7 +131,7 @@ export async function findRoomType(tx: Transaction, roomTypeId: string) {
 
 export async function findProperty(tx: Transaction, propertyId: string) {
   const rows = await tx
-    .select({ timezone: schema.properties.timezone })
+    .select({ id: schema.properties.id })
     .from(schema.properties)
     .where(eq(schema.properties.id, propertyId))
     .limit(1)

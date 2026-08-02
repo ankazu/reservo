@@ -7,20 +7,6 @@ export const reservationStatuses = [
 
 export type ReservationStatus = (typeof reservationStatuses)[number]
 
-export function canTransitionReservation(
-  from: ReservationStatus,
-  to: ReservationStatus,
-): boolean {
-  const allowed: Record<ReservationStatus, readonly ReservationStatus[]> = {
-    PENDING_PAYMENT: ['CONFIRMED', 'CANCELLED', 'EXPIRED'],
-    CONFIRMED: ['CANCELLED'],
-    CANCELLED: [],
-    EXPIRED: [],
-  }
-
-  return allowed[from].includes(to)
-}
-
 export type ReservationHold = {
   id: string
   propertyId: string
@@ -97,34 +83,6 @@ export function getStayDates(dateRange: DateRange): string[] {
   })
 }
 
-export function getCancellableUntil(
-  checkInDate: string,
-  timeZone: string,
-): Date {
-  const [year, month, day] = checkInDate.split('-').map(Number)
-  const targetUtc = Date.UTC(year, month - 1, day)
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  })
-  const parts = Object.fromEntries(
-    formatter
-      .formatToParts(new Date(targetUtc))
-      .map(({ type, value }) => [type, value]),
-  )
-  const localAtTarget = Date.UTC(
-    Number(parts.year),
-    Number(parts.month) - 1,
-    Number(parts.day),
-    Number(parts.hour),
-    Number(parts.minute),
-    Number(parts.second),
-  )
-  return new Date(targetUtc - (localAtTarget - targetUtc))
+export function getCancellableUntil(checkInDate: string): Date {
+  return new Date(`${checkInDate}T00:00:00+08:00`)
 }

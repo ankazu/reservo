@@ -11,6 +11,7 @@
     "IDEMPOTENCY_PAYLOAD_MISMATCH": "這筆訂房要求的資料與原始提交不同。",
     "IDEMPOTENCY_FINGERPRINT_UNAVAILABLE": "這筆舊訂房資料無法安全重試，請重新建立訂房。",
     "ROOM_TYPE_NOT_FOUND": "找不到這個房型。",
+    "PROPERTY_NOT_FOUND": "找不到這個住宿場所。",
     "GUEST_LIMIT_EXCEEDED": "這個房型無法容納目前的入住人數。",
     "AVAILABILITY_FAILED": "目前無法查詢房況，請稍後再試。",
     "DATABASE_UNAVAILABLE": "目前無法取得房況，請稍後再試。",
