@@ -44,6 +44,25 @@ export async function lockInventoryForStay(
     .for('update')
 }
 
+export async function findInventoryForStay(
+  tx: Transaction,
+  roomTypeId: string,
+  checkInDate: string,
+  checkOutDate: string,
+) {
+  return tx
+    .select()
+    .from(schema.roomInventory)
+    .where(
+      and(
+        eq(schema.roomInventory.roomTypeId, roomTypeId),
+        gte(schema.roomInventory.stayDate, checkInDate),
+        lt(schema.roomInventory.stayDate, checkOutDate),
+      ),
+    )
+    .orderBy(schema.roomInventory.stayDate)
+}
+
 export async function findRoomType(tx: Transaction, roomTypeId: string) {
   const rows = await tx
     .select()
