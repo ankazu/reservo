@@ -1,6 +1,7 @@
 import type { ReservationStatus } from '../../../shared/types/reservation'
 import {
   findReservationItems,
+  lockExpiredReservations,
   lockInventoryForStay,
   lockReservation,
   releaseInventory,
@@ -36,10 +37,39 @@ export async function transitionReservation(
   )
 }
 
+export async function expireReservations(
+  database: Database,
+  options: { now?: Date; limit?: number } = {},
+) {
+  const now = options.now ?? new Date()
+  const limit = options.limit ?? 100
+
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new RangeError('expiration limit must be a positive integer')
+  }
+
+  return database.transaction(async (tx) => {
+    const candidates = await lockExpiredReservations(tx, now, limit)
+    const expired = []
+    for (const candidate of candidates) {
+      expired.push(
+        await transitionReservationInTransaction(
+          tx,
+          candidate.id,
+          'EXPIRED',
+          now,
+        ),
+      )
+    }
+    return expired
+  })
+}
+
 async function transitionReservationInTransaction(
   tx: Transaction,
   reservationId: string,
   targetStatus: ReservationStatus,
+  now = new Date(),
 ) {
   const reservation = await lockReservation(tx, reservationId)
   if (!reservation) {
@@ -51,7 +81,6 @@ async function transitionReservationInTransaction(
     throw new ReservationTransitionError('INVALID_STATUS_TRANSITION')
   }
 
-  const now = new Date()
   if (
     targetStatus === 'EXPIRED' &&
     (!reservation.expiresAt || reservation.expiresAt > now)

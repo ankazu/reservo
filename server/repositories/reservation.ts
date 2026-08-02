@@ -112,6 +112,25 @@ export async function lockReservation(tx: Transaction, reservationId: string) {
   return rows[0]
 }
 
+export async function lockExpiredReservations(
+  tx: Transaction,
+  now: Date,
+  limit: number,
+) {
+  return tx
+    .select({ id: schema.reservations.id })
+    .from(schema.reservations)
+    .where(
+      and(
+        eq(schema.reservations.status, 'PENDING_PAYMENT'),
+        lte(schema.reservations.expiresAt, now),
+      ),
+    )
+    .orderBy(schema.reservations.expiresAt)
+    .limit(limit)
+    .for('update', { skipLocked: true })
+}
+
 export async function findReservationItems(
   tx: Transaction,
   reservationId: string,
