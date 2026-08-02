@@ -10,6 +10,8 @@ const isoDate = z
     )
   }, 'invalid_date')
 
+export const reservationIdSchema = z.string().uuid()
+
 export const reservationSearchSchema = z
   .object({
     roomTypeId: z.string().uuid(),

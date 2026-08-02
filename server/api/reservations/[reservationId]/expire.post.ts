@@ -1,6 +1,7 @@
 import { defineEventHandler, getRouterParam, setResponseStatus } from 'h3'
 
 import type { ApiResponse } from '../../../../shared/types/api'
+import { reservationIdSchema } from '../../../../shared/schemas/reservation'
 import {
   ReservationTransitionError,
   transitionReservation,
@@ -9,6 +10,17 @@ import { db } from '../../../utils/db'
 
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
+    const reservationId = getRouterParam(event, 'reservationId')
+    if (!reservationIdSchema.safeParse(reservationId).success) {
+      setResponseStatus(event, 400)
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_RESERVATION_ID',
+          message: 'INVALID_RESERVATION_ID',
+        },
+      }
+    }
     if (!db) {
       setResponseStatus(event, 503)
       return {
@@ -16,17 +28,6 @@ export default defineEventHandler(
         error: {
           code: 'DATABASE_UNAVAILABLE',
           message: 'DATABASE_UNAVAILABLE',
-        },
-      }
-    }
-    const reservationId = getRouterParam(event, 'reservationId')
-    if (!reservationId) {
-      setResponseStatus(event, 400)
-      return {
-        success: false,
-        error: {
-          code: 'INVALID_RESERVATION_ID',
-          message: 'INVALID_RESERVATION_ID',
         },
       }
     }
