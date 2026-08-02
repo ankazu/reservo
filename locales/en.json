@@ -21,7 +21,6 @@
     "RESERVATION_NOT_EXPIRED": "This hold has not expired yet.",
     "INVALID_STATUS_TRANSITION": "This reservation cannot change status now.",
     "RESERVATION_EXPIRED": "This hold has expired.",
-    "RESERVATION_CANCELLATION_EXPIRED": "This reservation can no longer be cancelled.",
     "REQUEST_TIMEOUT": "The request timed out. Please try again.",
     "NETWORK_ERROR": "The connection failed. Please try again.",
     "IDEMPOTENCY_KEY_REQUIRED": "Please submit the reservation again.",

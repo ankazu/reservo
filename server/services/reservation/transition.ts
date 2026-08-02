@@ -21,7 +21,6 @@ export class ReservationTransitionError extends Error {
       | 'INVALID_STATUS_TRANSITION'
       | 'RESERVATION_NOT_EXPIRED'
       | 'RESERVATION_EXPIRED'
-      | 'RESERVATION_CANCELLATION_EXPIRED'
       | 'INVENTORY_RELEASE_FAILED',
   ) {
     super(code)
@@ -95,10 +94,6 @@ async function transitionReservationInTransaction(
   ) {
     throw new ReservationTransitionError('RESERVATION_EXPIRED')
   }
-  if (targetStatus === 'CANCELLED' && reservation.cancellableUntil <= now) {
-    throw new ReservationTransitionError('RESERVATION_CANCELLATION_EXPIRED')
-  }
-
   if (targetStatus === 'CANCELLED' || targetStatus === 'EXPIRED') {
     const items = await findReservationItems(tx, reservation.id)
     for (const item of items) {

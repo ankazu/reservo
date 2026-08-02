@@ -82,7 +82,3 @@ export function getStayDates(dateRange: DateRange): string[] {
     return date.toISOString().slice(0, 10)
   })
 }
-
-export function getCancellableUntil(checkInDate: string): Date {
-  return new Date(`${checkInDate}T00:00:00+08:00`)
-}

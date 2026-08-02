@@ -1,8 +1,4 @@
-import {
-  getCancellableUntil,
-  getNightCount,
-  getStayDates,
-} from '../../../shared/types/reservation'
+import { getNightCount, getStayDates } from '../../../shared/types/reservation'
 import { calculatePriceQuote } from '../../../shared/utils/pricing'
 import { getReservationRequestFingerprint } from '../../../shared/utils/reservation-request'
 import type { CreateReservationInput } from './types'
@@ -125,7 +121,7 @@ export async function createReservationHold(
         taxesAmount: quote.taxes,
         discountsAmount: quote.discounts,
         totalAmount: quote.total,
-        cancellableUntil: getCancellableUntil(input.checkInDate),
+        cancellableUntil: null,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
         idempotencyKey,
         requestFingerprint,

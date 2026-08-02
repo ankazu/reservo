@@ -21,7 +21,6 @@
     "RESERVATION_NOT_EXPIRED": "這筆保留尚未到期。",
     "INVALID_STATUS_TRANSITION": "目前無法變更這筆訂房狀態。",
     "RESERVATION_EXPIRED": "這筆保留已經過期。",
-    "RESERVATION_CANCELLATION_EXPIRED": "這筆訂房已超過可取消期限。",
     "REQUEST_TIMEOUT": "連線逾時，請稍後再試。",
     "NETWORK_ERROR": "目前無法連線，請稍後再試。",
     "IDEMPOTENCY_KEY_REQUIRED": "請重新提交訂房資料。",

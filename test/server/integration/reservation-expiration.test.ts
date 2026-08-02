@@ -103,6 +103,18 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       discountsAmount: 0,
       totalAmount: 2,
     })
+    const [storedReservation] = await database
+      .select()
+      .from(schema.reservations)
+      .where(eq(schema.reservations.id, reservation.id))
+    expect(storedReservation).toMatchObject({
+      guestCount: input.guests,
+      subtotalAmount: 2,
+      taxesAmount: 0,
+      discountsAmount: 0,
+      totalAmount: 2,
+      cancellableUntil: null,
+    })
     await database
       .update(schema.reservations)
       .set({ expiresAt: new Date('2099-01-01T00:00:00Z') })
@@ -178,33 +190,6 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
     expect(inventory.every((row) => row.reservedQuantity === 0)).toBe(true)
   })
 
-  it('rejects cancellation after the cancellation deadline', async () => {
-    const reservation = await createReservationHold(
-      database,
-      input,
-      `integration-cancel-deadline-${crypto.randomUUID()}`,
-      getReservationRequestFingerprint(input),
-    )
-    reservationIds.push(reservation.id)
-
-    await database
-      .update(schema.reservations)
-      .set({ cancellableUntil: new Date('2020-01-01T00:00:00Z') })
-      .where(eq(schema.reservations.id, reservation.id))
-
-    await expect(
-      transitionReservation(database, reservation.id, 'CANCELLED'),
-    ).rejects.toThrow('RESERVATION_CANCELLATION_EXPIRED')
-
-    await database
-      .update(schema.reservations)
-      .set({ cancellableUntil: new Date('2199-01-01T00:00:00Z') })
-      .where(eq(schema.reservations.id, reservation.id))
-    await expect(
-      transitionReservation(database, reservation.id, 'CANCELLED'),
-    ).resolves.toMatchObject({ status: 'CANCELLED' })
-  })
-
   it('keeps historical item pricing and names after room type changes', async () => {
     const reservation = await createReservationHold(
       database,
@@ -232,5 +217,30 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       discounts: 0,
       quantity: 1,
     })
+    await transitionReservation(database, reservation.id, 'CANCELLED')
+  })
+
+  it('supports cancellation for a confirmed reservation', async () => {
+    const reservation = await createReservationHold(
+      database,
+      input,
+      `integration-confirmed-cancel-${crypto.randomUUID()}`,
+      getReservationRequestFingerprint(input),
+    )
+    reservationIds.push(reservation.id)
+
+    const confirmed = await transitionReservation(
+      database,
+      reservation.id,
+      'CONFIRMED',
+    )
+    const cancelled = await transitionReservation(
+      database,
+      reservation.id,
+      'CANCELLED',
+    )
+
+    expect(confirmed.status).toBe('CONFIRMED')
+    expect(cancelled.status).toBe('CANCELLED')
   })
 })
