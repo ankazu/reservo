@@ -1,0 +1,16 @@
+export type ReservationSearchInput = {
+  roomTypeId: string
+  checkInDate: string
+  checkOutDate: string
+  quantity: number
+}
+
+export type AvailabilityResponse = {
+  checkInDate: string
+  checkOutDate: string
+  nights: number
+  requestedQuantity: number
+  availableQuantity: number
+  available: boolean
+  inventoryReady: boolean
+}

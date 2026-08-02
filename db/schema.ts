@@ -82,6 +82,7 @@ export const reservations = pgTable(
     checkOutDate: date('check_out_date').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     idempotencyKey: text('idempotency_key').notNull(),
+    requestFingerprint: text('request_fingerprint'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),

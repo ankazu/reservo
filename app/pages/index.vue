@@ -12,9 +12,6 @@ const checkOut = ref('')
 const guests = ref(2)
 const hasSearched = ref(false)
 const formError = ref('')
-const availability = ref<
-  Record<string, { available: boolean; availableQuantity: number }>
->({})
 const selectedRoomId = ref<string | null>(null)
 const guestName = ref('')
 const guestEmail = ref('')
@@ -56,45 +53,42 @@ async function toggleLocale() {
 
 async function submitSearch() {
   formError.value = ''
+  hasSearched.value = false
+  selectedRoomId.value = null
+  reservationStore.clearReservation()
+  reservationStore.clearAvailability()
   if (!checkIn.value || !checkOut.value || checkOut.value <= checkIn.value) {
     formError.value = t('search.errors.dateRange')
     hasSearched.value = false
     return
   }
-  try {
-    const results = await Promise.all(
-      rooms.map(async (room) => {
-        const result = await $fetch<{
-          success: boolean
-          data?: { available: boolean; availableQuantity: number }
-        }>('/api/availability', {
-          query: {
-            roomTypeId: room.roomTypeId,
-            checkInDate: checkIn.value,
-            checkOutDate: checkOut.value,
-            quantity: 1,
-          },
-        })
-        return [
-          room.roomTypeId,
-          result.success && result.data
-            ? result.data
-            : { available: false, availableQuantity: 0 },
-        ] as const
-      }),
+  await reservationStore.searchAvailabilityForRooms(
+    rooms.map((room) => ({
+      roomTypeId: room.roomTypeId,
+      checkInDate: checkIn.value,
+      checkOutDate: checkOut.value,
+      quantity: 1,
+    })),
+  )
+  if (reservationStore.errorCode) {
+    formError.value = t(
+      `errors.${reservationStore.errorCode}`,
+      {},
+      t('errors.UNKNOWN'),
     )
-    availability.value = Object.fromEntries(results)
-    hasSearched.value = true
-  } catch {
-    formError.value = t('search.errors.unavailable')
     hasSearched.value = false
+  } else {
+    hasSearched.value = true
   }
 }
 
 function selectRoom(roomId: string) {
-  if (!availability.value[roomId]?.available) return
+  if (!hasSearched.value) return
+  if (!reservationStore.availabilityByRoomTypeId[roomId]?.available) return
   selectedRoomId.value = roomId
 }
+
+onBeforeUnmount(reservationStore.cancelAvailability)
 
 async function createHold() {
   if (!selectedRoomId.value || !guestName.value || !guestEmail.value) return
@@ -297,11 +291,14 @@ async function createHold() {
                 {{ t(`rooms.${room.key}.name`) }}
               </h3>
               <span
-                v-if="availability[room.roomTypeId]"
+                v-if="
+                  reservationStore.availabilityByRoomTypeId[room.roomTypeId]
+                "
                 class="whitespace-nowrap text-xs"
               >
                 {{
-                  availability[room.roomTypeId].available
+                  reservationStore.availabilityByRoomTypeId[room.roomTypeId]
+                    .available
                     ? t('rooms.available')
                     : t('rooms.unavailable')
                 }}
@@ -320,10 +317,16 @@ async function createHold() {
             <button
               class="pt-5 text-xs text-clay hover:underline"
               type="button"
+              :disabled="
+                !hasSearched ||
+                !reservationStore.availabilityByRoomTypeId[room.roomTypeId]
+                  ?.available
+              "
               @click="selectRoom(room.roomTypeId)"
             >
               {{
-                availability[room.roomTypeId]?.available
+                reservationStore.availabilityByRoomTypeId[room.roomTypeId]
+                  ?.available
                   ? t('rooms.choose')
                   : t('rooms.unavailable')
               }}
@@ -364,6 +367,13 @@ async function createHold() {
         role="status"
       >
         {{ t('reservation.success') }}
+      </p>
+      <p
+        v-else-if="reservationStore.errorCode"
+        class="mt-4 text-sm text-clay"
+        role="alert"
+      >
+        {{ t(`errors.${reservationStore.errorCode}`, {}, t('errors.UNKNOWN')) }}
       </p>
     </section>
 

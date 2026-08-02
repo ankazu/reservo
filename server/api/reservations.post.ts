@@ -2,6 +2,7 @@ import { defineEventHandler, getHeader, readBody, setResponseStatus } from 'h3'
 
 import { createReservationSchema } from '../../shared/schemas/reservation'
 import type { ApiResponse } from '../../shared/types/api'
+import { getReservationRequestFingerprint } from '../../shared/utils/reservation-request'
 import {
   createReservationHold,
   ReservationServiceError,
@@ -11,6 +12,7 @@ import { db } from '../utils/db'
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
     const idempotencyKey = getHeader(event, 'idempotency-key')?.trim()
+    const requestFingerprint = getHeader(event, 'x-request-fingerprint')?.trim()
     if (!idempotencyKey) {
       setResponseStatus(event, 400)
       return {
@@ -18,6 +20,16 @@ export default defineEventHandler(
         error: {
           code: 'IDEMPOTENCY_KEY_REQUIRED',
           message: 'IDEMPOTENCY_KEY_REQUIRED',
+        },
+      }
+    }
+    if (!requestFingerprint) {
+      setResponseStatus(event, 400)
+      return {
+        success: false,
+        error: {
+          code: 'REQUEST_FINGERPRINT_REQUIRED',
+          message: 'REQUEST_FINGERPRINT_REQUIRED',
         },
       }
     }
@@ -44,12 +56,23 @@ export default defineEventHandler(
         },
       }
     }
+    if (requestFingerprint !== getReservationRequestFingerprint(parsed.data)) {
+      setResponseStatus(event, 400)
+      return {
+        success: false,
+        error: {
+          code: 'REQUEST_FINGERPRINT_INVALID',
+          message: 'REQUEST_FINGERPRINT_INVALID',
+        },
+      }
+    }
 
     try {
       const reservation = await createReservationHold(
         db,
         parsed.data,
         idempotencyKey,
+        requestFingerprint,
       )
       return { success: true, data: reservation }
     } catch (error) {

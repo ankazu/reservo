@@ -1,0 +1,78 @@
+import type { ApiResponse } from '~~/shared/types/api'
+import { API_ENDPOINTS } from '~~/shared/constants/api'
+import { getReservationRequestFingerprint } from '~~/shared/utils/reservation-request'
+import type {
+  CreateReservationHoldInput,
+  Reservation,
+  ReservationHold,
+} from '~~/shared/types/reservation'
+import { AppError } from './errors'
+import type { ApiClient, RequestOptions } from './client'
+
+async function unwrap<T>(request: Promise<ApiResponse<T>>): Promise<T> {
+  const response = await request
+  if (!response.success)
+    throw new AppError(response.error.code, response.error.details)
+  return response.data
+}
+
+export function createReservationsApi(client: ApiClient) {
+  return {
+    createReservationHold(
+      input: CreateReservationHoldInput,
+      idempotencyKey: string,
+      options?: RequestOptions,
+    ): Promise<ReservationHold> {
+      return unwrap(
+        client.post<ApiResponse<ReservationHold>>(
+          API_ENDPOINTS.reservations,
+          input,
+          {
+            ...options,
+            headers: {
+              ...options?.headers,
+              'Idempotency-Key': idempotencyKey,
+              'X-Request-Fingerprint': getReservationRequestFingerprint(input),
+            },
+          },
+        ),
+      )
+    },
+    confirmReservation(
+      id: string,
+      options?: RequestOptions,
+    ): Promise<Reservation> {
+      return unwrap(
+        client.post<ApiResponse<Reservation>>(
+          API_ENDPOINTS.confirmReservation(id),
+          {},
+          options,
+        ),
+      )
+    },
+    cancelReservation(
+      id: string,
+      options?: RequestOptions,
+    ): Promise<Reservation> {
+      return unwrap(
+        client.post<ApiResponse<Reservation>>(
+          API_ENDPOINTS.cancelReservation(id),
+          {},
+          options,
+        ),
+      )
+    },
+    expireReservation(
+      id: string,
+      options?: RequestOptions,
+    ): Promise<Reservation> {
+      return unwrap(
+        client.post<ApiResponse<Reservation>>(
+          API_ENDPOINTS.expireReservation(id),
+          {},
+          options,
+        ),
+      )
+    },
+  }
+}

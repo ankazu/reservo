@@ -18,6 +18,19 @@ export type ReservationHold = {
   expiresAt: string | Date | null
 }
 
+export type Reservation = Omit<ReservationHold, 'status'> & {
+  status: ReservationStatus
+}
+
+export type CreateReservationHoldInput = DateRange & {
+  propertyId: string
+  roomTypeId: string
+  quantity: number
+  guestName: string
+  guestEmail: string
+  ratePlanName: 'Standard'
+}
+
 export type DateRange = {
   checkInDate: string
   checkOutDate: string

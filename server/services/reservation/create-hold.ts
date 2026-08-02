@@ -1,4 +1,5 @@
 import { getNightCount } from '../../../shared/types/reservation'
+import { getReservationRequestFingerprint } from '../../../shared/utils/reservation-request'
 import type { CreateReservationInput } from './types'
 import {
   createReservation,
@@ -16,7 +17,11 @@ type Database = NonNullable<typeof db>
 export class ReservationServiceError extends Error {
   constructor(
     readonly code:
-      'ROOM_TYPE_NOT_FOUND' | 'INVENTORY_NOT_READY' | 'INSUFFICIENT_INVENTORY',
+      | 'ROOM_TYPE_NOT_FOUND'
+      | 'INVENTORY_NOT_READY'
+      | 'INSUFFICIENT_INVENTORY'
+      | 'IDEMPOTENCY_PAYLOAD_MISMATCH'
+      | 'IDEMPOTENCY_FINGERPRINT_UNAVAILABLE',
   ) {
     super(code)
   }
@@ -26,6 +31,7 @@ export async function createReservationHold(
   database: Database,
   input: CreateReservationInput,
   idempotencyKey: string,
+  requestFingerprint = getReservationRequestFingerprint(input),
 ) {
   try {
     return await database.transaction(async (tx) => {
@@ -34,7 +40,13 @@ export async function createReservationHold(
         input.propertyId,
         idempotencyKey,
       )
-      if (existing) return existing
+      if (existing) {
+        assertMatchingFingerprint(
+          existing.requestFingerprint,
+          requestFingerprint,
+        )
+        return existing
+      }
 
       const roomType = await findRoomType(tx, input.roomTypeId)
       if (!roomType || roomType.propertyId !== input.propertyId) {
@@ -58,7 +70,13 @@ export async function createReservationHold(
         input.propertyId,
         idempotencyKey,
       )
-      if (existingAfterInventoryLock) return existingAfterInventoryLock
+      if (existingAfterInventoryLock) {
+        assertMatchingFingerprint(
+          existingAfterInventoryLock.requestFingerprint,
+          requestFingerprint,
+        )
+        return existingAfterInventoryLock
+      }
 
       if (inventory.length !== nights) {
         throw new ReservationServiceError('INVENTORY_NOT_READY')
@@ -88,6 +106,7 @@ export async function createReservationHold(
         checkOutDate: input.checkOutDate,
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
         idempotencyKey,
+        requestFingerprint,
       })
 
       await createReservationItem(tx, {
@@ -108,9 +127,27 @@ export async function createReservationHold(
       const existing = await database.transaction((tx) =>
         findReservationByIdempotencyKey(tx, input.propertyId, idempotencyKey),
       )
-      if (existing) return existing
+      if (existing) {
+        assertMatchingFingerprint(
+          existing.requestFingerprint,
+          requestFingerprint,
+        )
+        return existing
+      }
     }
     throw error
+  }
+}
+
+export function assertMatchingFingerprint(
+  existingFingerprint: string | null,
+  requestFingerprint: string,
+) {
+  if (existingFingerprint === null) {
+    throw new ReservationServiceError('IDEMPOTENCY_FINGERPRINT_UNAVAILABLE')
+  }
+  if (existingFingerprint !== requestFingerprint) {
+    throw new ReservationServiceError('IDEMPOTENCY_PAYLOAD_MISMATCH')
   }
 }
 
