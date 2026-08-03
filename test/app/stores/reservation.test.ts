@@ -4,6 +4,7 @@ import { AppError } from '../../../app/api/errors'
 import { createReservationStore } from '../../../app/stores/reservation'
 import type { AvailabilityResponse } from '../../../shared/types/availability'
 import type { CreateReservationHoldInput } from '../../../shared/types/reservation'
+import type { ReservationDetails } from '../../../shared/types/reservation'
 
 const input = {
   roomTypeId: 'room-1',
@@ -45,6 +46,7 @@ function createApi() {
   return {
     availability: { getAvailability: vi.fn() },
     reservations: {
+      getReservation: vi.fn(),
       createReservationHold: vi.fn(),
       confirmReservation: vi.fn(),
       cancelReservation: vi.fn(),
@@ -212,5 +214,40 @@ describe('reservation store transitions', () => {
     expect(result).toBeNull()
     expect(store.currentReservation.value?.status).toBe('PENDING_PAYMENT')
     expect(store.errorCode.value).toBe('RESERVATION_TRANSITION_FAILED')
+  })
+})
+
+describe('reservation store lookup', () => {
+  it('stores reservation details after a successful lookup', async () => {
+    const api = createApi()
+    const details = {
+      id: 'reservation-1',
+      status: 'CONFIRMED',
+      items: [],
+    } as unknown as ReservationDetails
+    api.reservations.getReservation.mockResolvedValue(details)
+    const store = createReservationStore(api)
+
+    await expect(store.getReservation(details.id)).resolves.toEqual(details)
+
+    expect(api.reservations.getReservation).toHaveBeenCalledWith(details.id)
+    expect(store.reservationDetails.value).toEqual(details)
+  })
+
+  it('clears stale details and keeps the lookup error code', async () => {
+    const api = createApi()
+    api.reservations.getReservation.mockRejectedValue(
+      new AppError('RESERVATION_NOT_FOUND'),
+    )
+    const store = createReservationStore(api)
+    store.reservationDetails.value = {
+      id: 'old-reservation',
+      items: [],
+    } as unknown as ReservationDetails
+
+    await expect(store.getReservation('missing')).resolves.toBeNull()
+
+    expect(store.reservationDetails.value).toBeNull()
+    expect(store.errorCode.value).toBe('RESERVATION_NOT_FOUND')
   })
 })

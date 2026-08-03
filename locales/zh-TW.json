@@ -109,6 +109,20 @@
     "confirm": "確認訂房",
     "cancel": "取消保留",
     "retryExpiration": "重試更新狀態",
+    "lookup": {
+      "title": "查詢訂房",
+      "description": "輸入訂房編號，查看最新的訂房摘要。",
+      "label": "訂房編號",
+      "placeholder": "貼上訂房編號",
+      "submit": "查詢訂房",
+      "loading": "查詢中…",
+      "status": "狀態",
+      "dates": "入住日期",
+      "total": "總額",
+      "errors": {
+        "required": "請輸入訂房編號。"
+      }
+    },
     "status": {
       "PENDING_PAYMENT": "等待付款",
       "CONFIRMED": "訂房已確認",

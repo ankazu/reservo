@@ -16,6 +16,8 @@ const selectedRoomId = ref<string | null>(null)
 const guestName = ref('')
 const guestEmail = ref('')
 const reservationFormError = ref('')
+const reservationLookupId = ref('')
+const reservationLookupError = ref('')
 const reservationStore = useReservationStore()
 const propertyId = '00000000-0000-4000-8000-000000000001'
 const now = ref(Date.now())
@@ -190,6 +192,24 @@ async function cancelHold() {
 async function retryExpiration() {
   expirationRequestId = null
   await expireHold()
+}
+
+async function lookupReservation() {
+  reservationLookupError.value = ''
+  if (!reservationLookupId.value.trim()) {
+    reservationLookupError.value = t('reservation.lookup.errors.required')
+    return
+  }
+  const result = await reservationStore.getReservation(
+    reservationLookupId.value.trim(),
+  )
+  if (!result) {
+    reservationLookupError.value = t(
+      `errors.${reservationStore.errorCode}`,
+      {},
+      t('errors.UNKNOWN'),
+    )
+  }
 }
 </script>
 
@@ -614,6 +634,81 @@ async function retryExpiration() {
       >
         {{ t(`errors.${reservationStore.errorCode}`, {}, t('errors.UNKNOWN')) }}
       </p>
+      <div class="mt-8 border border-stone-300 bg-[#eeece5] p-5">
+        <div class="mb-4">
+          <p class="text-sm font-medium text-ink">
+            {{ t('reservation.lookup.title') }}
+          </p>
+          <p class="mt-1 text-xs leading-5 text-moss">
+            {{ t('reservation.lookup.description') }}
+          </p>
+        </div>
+        <form
+          class="grid gap-3 md:grid-cols-[1fr_auto]"
+          @submit.prevent="lookupReservation"
+        >
+          <label class="sr-only" for="reservation-lookup-id">
+            {{ t('reservation.lookup.label') }}
+          </label>
+          <input
+            id="reservation-lookup-id"
+            v-model="reservationLookupId"
+            class="border-b border-stone-300 bg-transparent p-2 text-sm text-ink outline-none focus:border-clay"
+            :placeholder="t('reservation.lookup.placeholder')"
+            autocomplete="off"
+            inputmode="text"
+          />
+          <button
+            type="submit"
+            class="border border-clay px-5 py-3 text-xs text-clay transition hover:bg-clay hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="reservationStore.isLoading"
+          >
+            {{
+              reservationStore.isLoading
+                ? t('reservation.lookup.loading')
+                : t('reservation.lookup.submit')
+            }}
+          </button>
+        </form>
+        <p
+          v-if="reservationLookupError"
+          class="mt-3 text-xs text-clay"
+          role="alert"
+        >
+          {{ reservationLookupError }}
+        </p>
+        <div
+          v-if="reservationStore.reservationDetails"
+          class="mt-5 grid gap-2 border-t border-stone-300 pt-4 text-xs text-moss md:grid-cols-3"
+          role="status"
+        >
+          <span>
+            {{ t('reservation.lookup.status') }}:
+            <strong class="font-medium text-ink">
+              {{
+                t(
+                  `reservation.status.${reservationStore.reservationDetails.status}`,
+                )
+              }}
+            </strong>
+          </span>
+          <span>
+            {{ t('reservation.lookup.dates') }}:
+            <strong class="font-medium text-ink">
+              {{ reservationStore.reservationDetails.checkInDate }} →
+              {{ reservationStore.reservationDetails.checkOutDate }}
+            </strong>
+          </span>
+          <span>
+            {{ t('reservation.lookup.total') }}:
+            <strong class="font-medium text-ink">
+              {{
+                formatCurrency(reservationStore.reservationDetails.price.total)
+              }}
+            </strong>
+          </span>
+        </div>
+      </div>
     </section>
 
     <section

@@ -109,6 +109,20 @@
     "confirm": "Confirm reservation",
     "cancel": "Cancel hold",
     "retryExpiration": "Retry status update",
+    "lookup": {
+      "title": "Look up a reservation",
+      "description": "Enter your reservation ID to view the latest summary.",
+      "label": "Reservation ID",
+      "placeholder": "Paste reservation ID",
+      "submit": "Look up",
+      "loading": "Looking up…",
+      "status": "Status",
+      "dates": "Stay dates",
+      "total": "Total",
+      "errors": {
+        "required": "Please enter a reservation ID."
+      }
+    },
     "status": {
       "PENDING_PAYMENT": "Awaiting payment",
       "CONFIRMED": "Reservation confirmed",

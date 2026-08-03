@@ -26,6 +26,7 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
   })
   const availabilityByRoomTypeId = ref<Record<string, AvailabilityResponse>>({})
   const currentReservation = ref<ReservationHold | Reservation | null>(null)
+  const reservationDetails = ref<ReservationDetails | null>(null)
   const isAvailabilityLoading = ref(false)
   const isLoading = ref(false)
   const errorCode = ref<string | null>(null)
@@ -156,6 +157,26 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     }
   }
 
+  async function getReservation(
+    id: string,
+  ): Promise<ReservationDetails | null> {
+    if (isLoading.value) return null
+    isLoading.value = true
+    errorCode.value = null
+    errorDetails.value = undefined
+    try {
+      const result = await api.reservations.getReservation(id)
+      reservationDetails.value = result
+      return result
+    } catch (error) {
+      reservationDetails.value = null
+      captureError(error)
+      return null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const confirmReservation = (id: string) =>
     transition(id, (reservationId) =>
       api.reservations.confirmReservation(reservationId),
@@ -171,6 +192,7 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
 
   function clearReservation() {
     currentReservation.value = null
+    reservationDetails.value = null
     errorCode.value = null
     errorDetails.value = undefined
     idempotencyKey.value = null
@@ -183,6 +205,7 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     search,
     availabilityByRoomTypeId,
     currentReservation,
+    reservationDetails,
     isAvailabilityLoading,
     isLoading,
     errorCode,
@@ -196,6 +219,7 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     confirmReservation,
     cancelReservation,
     expireReservation,
+    getReservation,
     clearReservation,
   }
 }
