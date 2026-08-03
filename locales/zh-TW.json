@@ -118,6 +118,7 @@
       "loading": "查詢中…",
       "status": "狀態",
       "dates": "入住日期",
+      "dateRange": "{checkIn} 至 {checkOut}",
       "total": "總額",
       "errors": {
         "required": "請輸入訂房編號。"

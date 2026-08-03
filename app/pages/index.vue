@@ -32,6 +32,15 @@ function formatCurrency(amount: number) {
   }).format(amount)
 }
 
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat(locale.value, {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(`${date}T00:00:00+08:00`))
+}
+
 const reservationSecondsRemaining = computed(() => {
   const expiresAt = reservationStore.currentReservation?.expiresAt
   if (!expiresAt) return null
@@ -205,7 +214,7 @@ async function lookupReservation() {
   )
   if (!result) {
     reservationLookupError.value = t(
-      `errors.${reservationStore.errorCode}`,
+      `errors.${reservationStore.lookupErrorCode}`,
       {},
       t('errors.UNKNOWN'),
     )
@@ -661,10 +670,10 @@ async function lookupReservation() {
           <button
             type="submit"
             class="border border-clay px-5 py-3 text-xs text-clay transition hover:bg-clay hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="reservationStore.isLoading"
+            :disabled="reservationStore.isLookupLoading"
           >
             {{
-              reservationStore.isLoading
+              reservationStore.isLookupLoading
                 ? t('reservation.lookup.loading')
                 : t('reservation.lookup.submit')
             }}
@@ -695,8 +704,16 @@ async function lookupReservation() {
           <span>
             {{ t('reservation.lookup.dates') }}:
             <strong class="font-medium text-ink">
-              {{ reservationStore.reservationDetails.checkInDate }} →
-              {{ reservationStore.reservationDetails.checkOutDate }}
+              {{
+                t('reservation.lookup.dateRange', {
+                  checkIn: formatDate(
+                    reservationStore.reservationDetails.checkInDate,
+                  ),
+                  checkOut: formatDate(
+                    reservationStore.reservationDetails.checkOutDate,
+                  ),
+                })
+              }}
             </strong>
           </span>
           <span>

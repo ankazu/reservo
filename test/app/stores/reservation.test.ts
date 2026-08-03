@@ -248,6 +248,7 @@ describe('reservation store lookup', () => {
     await expect(store.getReservation('missing')).resolves.toBeNull()
 
     expect(store.reservationDetails.value).toBeNull()
-    expect(store.errorCode.value).toBe('RESERVATION_NOT_FOUND')
+    expect(store.lookupErrorCode.value).toBe('RESERVATION_NOT_FOUND')
+    expect(store.errorCode.value).toBeNull()
   })
 })

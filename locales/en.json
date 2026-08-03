@@ -118,6 +118,7 @@
       "loading": "Looking up…",
       "status": "Status",
       "dates": "Stay dates",
+      "dateRange": "{checkIn} → {checkOut}",
       "total": "Total",
       "errors": {
         "required": "Please enter a reservation ID."

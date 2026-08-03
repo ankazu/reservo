@@ -9,6 +9,7 @@ import type {
   CreateReservationHoldInput,
   DateRange,
   Reservation,
+  ReservationDetails,
   ReservationHold,
 } from '~~/shared/types/reservation'
 
@@ -29,8 +30,11 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
   const reservationDetails = ref<ReservationDetails | null>(null)
   const isAvailabilityLoading = ref(false)
   const isLoading = ref(false)
+  const isLookupLoading = ref(false)
   const errorCode = ref<string | null>(null)
   const errorDetails = ref<unknown>(undefined)
+  const lookupErrorCode = ref<string | null>(null)
+  const lookupErrorDetails = ref<unknown>(undefined)
   const idempotencyKey = ref<string | null>(null)
   const requestFingerprint = ref<string | null>(null)
   let availabilityController: AbortController | null = null
@@ -160,20 +164,26 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
   async function getReservation(
     id: string,
   ): Promise<ReservationDetails | null> {
-    if (isLoading.value) return null
-    isLoading.value = true
-    errorCode.value = null
-    errorDetails.value = undefined
+    if (isLookupLoading.value) return null
+    isLookupLoading.value = true
+    lookupErrorCode.value = null
+    lookupErrorDetails.value = undefined
     try {
       const result = await api.reservations.getReservation(id)
       reservationDetails.value = result
       return result
     } catch (error) {
       reservationDetails.value = null
-      captureError(error)
+      if (error instanceof AppError) {
+        lookupErrorCode.value = error.code
+        lookupErrorDetails.value = error.details
+      } else if (!isAbortError(error)) {
+        lookupErrorCode.value = 'UNKNOWN'
+        lookupErrorDetails.value = undefined
+      }
       return null
     } finally {
-      isLoading.value = false
+      isLookupLoading.value = false
     }
   }
 
@@ -195,6 +205,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     reservationDetails.value = null
     errorCode.value = null
     errorDetails.value = undefined
+    lookupErrorCode.value = null
+    lookupErrorDetails.value = undefined
     idempotencyKey.value = null
     requestFingerprint.value = null
   }
@@ -208,8 +220,11 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     reservationDetails,
     isAvailabilityLoading,
     isLoading,
+    isLookupLoading,
     errorCode,
     errorDetails,
+    lookupErrorCode,
+    lookupErrorDetails,
     setSearch,
     searchAvailability,
     searchAvailabilityForRooms,
