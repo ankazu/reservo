@@ -99,7 +99,7 @@
   "reservation": {
     "name": "Name",
     "email": "Email",
-    "number": "Reservation ID",
+    "idLabel": "Reservation ID:",
     "submit": "Hold room",
     "loading": "Holding room…",
     "errors": {

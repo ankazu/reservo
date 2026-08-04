@@ -571,7 +571,7 @@ async function lookupReservation() {
             }}
           </p>
           <p class="mt-1 text-xs text-moss">
-            {{ t('reservation.number') }}:
+            {{ t('reservation.idLabel') }}
             <span class="font-mono text-ink">
               {{ reservationStore.currentReservation.id }}
             </span>
