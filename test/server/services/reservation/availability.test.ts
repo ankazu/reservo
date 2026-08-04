@@ -10,7 +10,14 @@ vi.mock('../../../../server/repositories/reservation', () => repository)
 
 import { getAvailability } from '../../../../server/services/reservation/availability'
 
-describe('availability service pricing', () => {
+function createDatabase() {
+  return {
+    transaction: async (callback: (tx: object) => Promise<unknown>) =>
+      callback({}),
+  }
+}
+
+describe('availability service', () => {
   it('passes the room type nightly price into the availability quote', async () => {
     repository.findRoomType.mockResolvedValue({
       id: 'room-type-1',
@@ -32,12 +39,7 @@ describe('availability service pricing', () => {
       },
     ])
 
-    const database = {
-      transaction: async (callback: (tx: object) => Promise<unknown>) =>
-        callback({}),
-    }
-
-    const result = await getAvailability(database as never, {
+    const result = await getAvailability(createDatabase() as never, {
       roomTypeId: 'room-type-1',
       checkInDate: '2026-08-10',
       checkOutDate: '2026-08-12',
@@ -69,12 +71,7 @@ describe('availability service pricing', () => {
       },
     ])
 
-    const database = {
-      transaction: async (callback: (tx: object) => Promise<unknown>) =>
-        callback({}),
-    }
-
-    const result = await getAvailability(database as never, {
+    const result = await getAvailability(createDatabase() as never, {
       roomTypeId: 'room-type-1',
       checkInDate: '2026-08-10',
       checkOutDate: '2026-08-11',
