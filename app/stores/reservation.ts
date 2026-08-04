@@ -64,9 +64,10 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     const requestId = ++availabilityRequest
     isAvailabilityLoading.value = true
     errorCode.value = null
+    errorDetails.value = undefined
 
     try {
-      const results = await Promise.all(
+      const results = await Promise.allSettled(
         inputs.map(
           async (input) =>
             [
@@ -78,12 +79,27 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
         ),
       )
       if (requestId === availabilityRequest && !controller.signal.aborted) {
-        availabilityByRoomTypeId.value = Object.fromEntries(results)
-      }
-    } catch (error) {
-      if (!isAbortError(error) && requestId === availabilityRequest) {
-        availabilityByRoomTypeId.value = {}
-        captureError(error)
+        const successfulResults = results
+          .filter(
+            (
+              result,
+            ): result is PromiseFulfilledResult<
+              readonly [string, AvailabilityResponse]
+            > => result.status === 'fulfilled',
+          )
+          .map((result) => result.value)
+        availabilityByRoomTypeId.value = Object.fromEntries(successfulResults)
+
+        const blockingError = results.find(
+          (result) =>
+            result.status === 'rejected' &&
+            !(
+              result.reason instanceof AppError &&
+              result.reason.code === 'GUEST_LIMIT_EXCEEDED'
+            ),
+        )
+        if (blockingError?.status === 'rejected')
+          captureError(blockingError.reason)
       }
     } finally {
       if (requestId === availabilityRequest) isAvailabilityLoading.value = false
