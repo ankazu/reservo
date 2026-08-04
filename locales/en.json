@@ -56,6 +56,7 @@
     "guestUnit": "guests",
     "submit": "Search rooms",
     "loading": "Searching…",
+    "retry": "Retry search",
     "errors": {
       "dateRange": "Please choose a valid check-in and check-out date.",
       "unavailable": "Availability is temporarily unavailable. Please try again."

@@ -56,6 +56,7 @@
     "guestUnit": "位旅客",
     "submit": "搜尋房間",
     "loading": "查詢中…",
+    "retry": "重試搜尋",
     "errors": {
       "dateRange": "請選擇有效的入住與退房日期。",
       "unavailable": "目前無法查詢房況，請稍後再試。"

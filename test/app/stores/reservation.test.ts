@@ -166,6 +166,24 @@ describe('reservation store availability', () => {
     expect(store.availabilityByRoomTypeId.value).toEqual({})
     expect(store.errorCode.value).toBe('AVAILABILITY_FAILED')
   })
+
+  it('replaces an availability error with results after retrying', async () => {
+    const api = createApi()
+    api.availability.getAvailability
+      .mockRejectedValueOnce(new AppError('AVAILABILITY_FAILED'))
+      .mockResolvedValueOnce(availabilityResult(input.roomTypeId))
+    const store = createReservationStore(api)
+
+    await store.searchAvailability(input)
+    expect(store.errorCode.value).toBe('AVAILABILITY_FAILED')
+
+    await store.searchAvailability(input)
+
+    expect(store.errorCode.value).toBeNull()
+    expect(store.availabilityByRoomTypeId.value).toEqual({
+      [input.roomTypeId]: availabilityResult(input.roomTypeId),
+    })
+  })
 })
 
 describe('reservation store idempotency', () => {

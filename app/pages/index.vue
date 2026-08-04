@@ -362,13 +362,21 @@ async function lookupReservation() {
           >
         </button>
       </form>
-      <p
+      <div
         v-if="formError"
-        class="text-xs text-peach md:col-start-2"
-        role="alert"
+        class="flex flex-wrap items-center gap-3 text-xs text-peach md:col-start-2"
       >
-        {{ formError }}
-      </p>
+        <p role="alert">{{ formError }}</p>
+        <button
+          v-if="reservationStore.errorCode"
+          type="button"
+          class="border border-peach px-3 py-1.5 text-paper transition hover:bg-peach hover:text-ink focus:outline-none focus:ring-2 focus:ring-peach/60 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="reservationStore.isAvailabilityLoading"
+          @click="submitSearch"
+        >
+          {{ t('search.retry') }}
+        </button>
+      </div>
       <p
         v-else-if="hasSearched"
         class="text-xs text-[#c2d3bd] md:col-start-2"
