@@ -99,6 +99,7 @@
   "reservation": {
     "name": "姓名",
     "email": "Email",
+    "number": "訂房編號",
     "submit": "保留房間",
     "loading": "保留中…",
     "errors": {

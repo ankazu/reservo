@@ -570,6 +570,12 @@ async function lookupReservation() {
               )
             }}
           </p>
+          <p class="mt-1 text-xs text-moss">
+            {{ t('reservation.number') }}:
+            <span class="font-mono text-ink">
+              {{ reservationStore.currentReservation.id }}
+            </span>
+          </p>
           <p
             v-if="
               reservationStore.currentReservation.status === 'PENDING_PAYMENT'
