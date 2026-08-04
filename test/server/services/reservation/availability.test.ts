@@ -53,4 +53,39 @@ describe('availability service pricing', () => {
     })
     expect(repository.findRoomType).toHaveBeenCalledWith({}, 'room-type-1')
   })
+
+  it('returns an unavailable result when guests exceed room capacity', async () => {
+    repository.findRoomType.mockResolvedValue({
+      id: 'room-type-1',
+      maxGuests: 2,
+      nightlyPrice: 5800,
+    })
+    repository.findInventoryForStay.mockResolvedValue([
+      {
+        stayDate: '2026-08-10',
+        totalQuantity: 2,
+        reservedQuantity: 0,
+        blockedQuantity: 0,
+      },
+    ])
+
+    const database = {
+      transaction: async (callback: (tx: object) => Promise<unknown>) =>
+        callback({}),
+    }
+
+    const result = await getAvailability(database as never, {
+      roomTypeId: 'room-type-1',
+      checkInDate: '2026-08-10',
+      checkOutDate: '2026-08-11',
+      quantity: 1,
+      guests: 3,
+    })
+
+    expect(result).toMatchObject({
+      availableQuantity: 2,
+      available: false,
+      inventoryReady: true,
+    })
+  })
 })

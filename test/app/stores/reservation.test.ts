@@ -115,12 +115,15 @@ describe('reservation store availability', () => {
     expect(store.errorDetails.value).toEqual({ status: 500 })
   })
 
-  it('keeps compatible rooms when another room rejects the guest count', async () => {
+  it('keeps compatible rooms when another room is unavailable for the guest count', async () => {
     const api = createApi()
     api.availability.getAvailability.mockImplementation(
       (request: typeof input) => {
         if (request.roomTypeId === 'room-1') {
-          return Promise.reject(new AppError('GUEST_LIMIT_EXCEEDED'))
+          return Promise.resolve({
+            ...availabilityResult(request.roomTypeId),
+            available: false,
+          })
         }
         return Promise.resolve(availabilityResult(request.roomTypeId))
       },
@@ -132,9 +135,15 @@ describe('reservation store availability', () => {
       { ...input, roomTypeId: 'room-2' },
     ])
 
-    expect(store.availabilityByRoomTypeId.value).toEqual({
+    expect(store.availabilityByRoomTypeId.value).toMatchObject({
+      'room-1': { available: false },
       'room-2': availabilityResult('room-2'),
     })
+    expect(
+      Object.values(store.availabilityByRoomTypeId.value).filter(
+        (result) => result.available,
+      ),
+    ).toHaveLength(1)
     expect(store.errorCode.value).toBeNull()
   })
 })
