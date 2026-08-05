@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import * as schema from '../../../db/schema'
 import { getReservationRequestFingerprint } from '../../../shared/utils/reservation-request'
 import { createReservationHold } from '../../../server/services/reservation/create-hold'
+import { getAvailability } from '../../../server/services/reservation/availability'
 import { db } from '../../../server/utils/db'
 
 const runIntegration = Boolean(process.env.DATABASE_URL)
@@ -104,7 +105,7 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     }
     await database
       .update(schema.roomInventory)
-      .set({ reservedQuantity: 0 })
+      .set({ reservedQuantity: 0, blockedQuantity: 0, totalQuantity: 1 })
       .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
   })
 
@@ -241,5 +242,39 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
         ['2099-03-01', '2099-03-02'].includes(row.stayDate),
       ),
     ).toHaveLength(2)
+  })
+
+  it('syncs unoccupied inventory after rooms change and preserves occupied rows', async () => {
+    const secondRoomId = crypto.randomUUID()
+    await database.insert(schema.rooms).values({
+      id: secondRoomId,
+      roomTypeId,
+      name: 'Room 2',
+    })
+
+    await getAvailability(database, input)
+    let inventory = await database
+      .select()
+      .from(schema.roomInventory)
+      .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
+    expect(inventory.every((row) => row.totalQuantity === 2)).toBe(true)
+
+    await database
+      .update(schema.roomInventory)
+      .set({ blockedQuantity: 1 })
+      .where(eq(schema.roomInventory.id, inventoryId))
+    await database.delete(schema.rooms).where(eq(schema.rooms.id, secondRoomId))
+
+    await getAvailability(database, input)
+    inventory = await database
+      .select()
+      .from(schema.roomInventory)
+      .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
+    expect(inventory.find((row) => row.id === inventoryId)?.totalQuantity).toBe(
+      2,
+    )
+    expect(inventory.find((row) => row.id !== inventoryId)?.totalQuantity).toBe(
+      1,
+    )
   })
 })

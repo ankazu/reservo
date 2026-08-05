@@ -1,4 +1,4 @@
-import { and, eq, gte, lt, lte, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { NodePgTransaction } from 'drizzle-orm/node-postgres'
 
@@ -108,20 +108,35 @@ export async function provisionInventoryForStay(
     .from(schema.rooms)
     .where(eq(schema.rooms.roomTypeId, roomTypeId))
 
-  if (rooms.length === 0) return
+  if (rooms.length > 0) {
+    await tx
+      .insert(schema.roomInventory)
+      .values(
+        stayDates.map((stayDate) => ({
+          roomTypeId,
+          stayDate,
+          totalQuantity: rooms.length,
+        })),
+      )
+      .onConflictDoNothing({
+        target: [
+          schema.roomInventory.roomTypeId,
+          schema.roomInventory.stayDate,
+        ],
+      })
+  }
 
   await tx
-    .insert(schema.roomInventory)
-    .values(
-      stayDates.map((stayDate) => ({
-        roomTypeId,
-        stayDate,
-        totalQuantity: rooms.length,
-      })),
+    .update(schema.roomInventory)
+    .set({ totalQuantity: rooms.length })
+    .where(
+      and(
+        eq(schema.roomInventory.roomTypeId, roomTypeId),
+        inArray(schema.roomInventory.stayDate, stayDates),
+        eq(schema.roomInventory.reservedQuantity, 0),
+        eq(schema.roomInventory.blockedQuantity, 0),
+      ),
     )
-    .onConflictDoNothing({
-      target: [schema.roomInventory.roomTypeId, schema.roomInventory.stayDate],
-    })
 }
 
 export async function findRoomType(tx: Transaction, roomTypeId: string) {

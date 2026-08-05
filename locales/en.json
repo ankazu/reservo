@@ -14,6 +14,7 @@
     "PROPERTY_NOT_FOUND": "This property could not be found.",
     "GUEST_LIMIT_EXCEEDED": "This room cannot accommodate that many guests.",
     "AVAILABILITY_FAILED": "Availability is temporarily unavailable.",
+    "CATALOG_FAILED": "Property and room information is temporarily unavailable.",
     "DATABASE_UNAVAILABLE": "Availability is temporarily unavailable.",
     "INVENTORY_NOT_READY": "Availability data is not ready yet.",
     "INSUFFICIENT_INVENTORY": "There are not enough rooms for these dates.",
@@ -78,15 +79,19 @@
     "available": "Available",
     "unavailable": "Unavailable",
     "empty": "No rooms are available for these dates. Try another stay.",
-    "standard": {
+    "loading": "Loading rooms…",
+    "catalogEmpty": "No room types are currently available."
+  },
+  "roomTypes": {
+    "00000000-0000-4000-8000-000000000101": {
       "name": "Sunroom",
       "description": "A simple, just-right room where the morning light wakes you."
     },
-    "garden": {
+    "00000000-0000-4000-8000-000000000102": {
       "name": "Garden room",
       "description": "Open the window to green space and take life slowly for a few days."
     },
-    "suite": {
+    "00000000-0000-4000-8000-000000000103": {
       "name": "Blank-space suite",
       "description": "A little more space, and a little more time undisturbed."
     }

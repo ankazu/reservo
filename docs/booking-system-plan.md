@@ -5,8 +5,8 @@
 # Reservo 訂房系統 MVP 主計劃
 
 - 最後更新：2026-08-05
-- 目前階段：CI 與真實 PostgreSQL release gate 已完成，下一步建立動態 property 與 room-type catalog
-- 唯一下一步：[Slice 4：動態 property 與 room-type catalog](#slice-4動態-property-與-room-type-catalog)
+- 目前階段：動態 property 與 room-type catalog 已完成，下一步建立受保護的訂房詳情頁
+- 唯一下一步：[Slice 5：受保護的訂房詳情頁](#slice-5受保護的訂房詳情頁)
 
 ## 1. 目標與範圍
 
@@ -175,6 +175,8 @@ External input 使用 Zod。API error code 與 message 保持 language-neutral�
 
 ```text
 GET  /api/availability
+GET  /api/property
+GET  /api/room-types
 POST /api/reservations
 GET  /api/reservations/:reservationId
 POST /api/reservations/:reservationId/cancel
@@ -182,14 +184,8 @@ POST /api/internal/reservations/:reservationId/confirm
 POST /api/internal/reservations/expire
 ```
 
-Planned routes：
-
-```text
-GET /api/property
-GET /api/room-types
-```
-
-在 Slice 3 完成前，首頁仍依賴固定 seed room-type UUID。沒有列在本節的 auth、payment、admin routes 不屬於目前 MVP 契約。
+首頁從 catalog routes 動態取得 property 與 room types，並依 ADR 0003
+以 client-side all-or-nothing aggregation 查詢各房型 availability。沒有列在本節的 auth、payment、admin routes 不屬於目前 MVP 契約。
 
 ## 5. 目前完成基線
 
@@ -217,10 +213,13 @@ GET /api/room-types
 - 256-bit guest reservation access token；database 只保存 SHA-256 hash
 - Lookup 與 cancel 以 reservation ID＋Bearer token 授權，失敗一律不洩漏 reservation 或 PII
 - Confirm 與 expiration 僅保留 maintenance-secret 保護的 internal boundary
+- Read-only property／room-type catalog API 與動態首頁 catalog
+- 多房型 availability 維持 client-side all-or-nothing aggregation
+- 未占用 inventory row 會在 availability／hold provisioning 時同步 Room 數量；已有 reserved／blocked 的 row 保留原 total
 
 ### 目前驗證證據
 
-- 2026-08-05：unit／component／route Vitest 85 passed、11 個 PostgreSQL integration tests 已由獨立 release gate 執行。
+- 2026-08-05：unit／component／route Vitest 98 passed；PostgreSQL integration suite 現有 12 tests，交由獨立 release gate 執行。
 - CI 使用 PostgreSQL 16 service，從空資料庫套用全部 migrations，並執行 format check、完整 typecheck、unit tests、integration tests 與 production build。
 - 完整 Nuxt typecheck 已在 CI release gate 執行；Playwright flow 與可重現的 production deployment verification 尚未完成。
 
@@ -309,7 +308,7 @@ GET /api/room-types
 
 ### Slice 4：動態 property 與 room-type catalog
 
-優先級：P1；狀態：下一步。
+優先級：P1；狀態：完成。
 
 - 增加 read-only property／room-type API。
 - 移除首頁硬編碼 room-type UUID。
@@ -319,9 +318,16 @@ GET /api/room-types
 
 完成條件：新增、移除或重新 seed room type 不需要修改首頁程式碼。
 
+驗證證據：
+
+- `GET /api/property` 與 `GET /api/room-types` route tests 覆蓋成功、空 catalog、property 不存在與 database unavailable。
+- 首頁 page test 使用不同於 seed 的動態 IDs，驗證房型呈現與 availability requests 都來自 catalog response。
+- Catalog client 以 `Promise.all` 載入兩個 endpoints；任一失敗時不顯示不完整 catalog。
+- PostgreSQL integration regression test 驗證未占用 rows 同步 Room 數量，blocked row 不被縮減。
+
 ### Slice 5：受保護的訂房詳情頁
 
-優先級：P1；狀態：未開始；依賴 Slice 2。
+優先級：P1；狀態：下一步；依賴 Slice 2。
 
 - 新增獨立 route，以 reservation ID 與 access token 載入。
 - 顯示 guest、日期、晚數、room-type snapshot、rate-plan snapshot、quantity 與 TWD summary。

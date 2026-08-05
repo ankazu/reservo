@@ -30,6 +30,38 @@ const searchInput = {
 
 let IndexPage: Component
 let reservationStore: ReturnType<typeof createReservationStore>
+const getCatalog = vi.hoisted(() => vi.fn())
+
+vi.mock('../../../app/api', () => ({
+  useApiModules: () => ({ catalog: { getCatalog } }),
+}))
+
+const catalog = {
+  property: {
+    id: 'dynamic-property',
+    name: 'Dynamic Hotel',
+    timezone: 'Asia/Taipei',
+    currency: 'TWD',
+  },
+  roomTypes: [
+    {
+      id: 'dynamic-room-a',
+      propertyId: 'dynamic-property',
+      name: 'Dynamic Garden',
+      description: 'A room loaded from the catalog',
+      maxGuests: 2,
+      nightlyPrice: 5800,
+    },
+    {
+      id: 'dynamic-room-b',
+      propertyId: 'dynamic-property',
+      name: 'Dynamic Suite',
+      description: 'Another catalog room',
+      maxGuests: 4,
+      nightlyPrice: 8800,
+    },
+  ],
+}
 
 enableAutoUnmount(afterEach)
 
@@ -65,7 +97,7 @@ beforeAll(async () => {
   vi.stubGlobal('useI18n', () => ({
     locale: ref('zh-TW'),
     setLocale: vi.fn(),
-    t: (key: string) => key,
+    t: (key: string, _values?: unknown, fallback?: string) => fallback ?? key,
   }))
   vi.stubGlobal('useReservationStore', () => reservationStore)
   IndexPage = (await import('../../../app/pages/index.vue')).default
@@ -73,9 +105,70 @@ beforeAll(async () => {
 
 beforeEach(() => {
   reservationStore = createReservationStore()
+  getCatalog.mockReset()
+  getCatalog.mockResolvedValue(catalog)
 })
 
 describe('availability results', () => {
+  it('does not search an empty room list while the catalog is loading', async () => {
+    let resolveCatalog!: (value: typeof catalog) => void
+    getCatalog.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCatalog = resolve
+      }),
+    )
+    const AvailabilitySearchStub = defineComponent({
+      emits: ['search'],
+      template:
+        '<button data-test="search" @click="$emit(\'search\', input)" />',
+      setup() {
+        return { input: searchInput }
+      },
+    })
+    const wrapper = mount(IndexPage, {
+      global: {
+        components: { AvailabilitySearch: AvailabilitySearchStub },
+      },
+    })
+
+    await wrapper.get('[data-test="search"]').trigger('click')
+    await flushPromises()
+    expect(reservationStore.searchAvailabilityForRooms).not.toHaveBeenCalled()
+
+    resolveCatalog(catalog)
+    await flushPromises()
+    await wrapper.get('[data-test="search"]').trigger('click')
+    await flushPromises()
+    expect(reservationStore.searchAvailabilityForRooms).toHaveBeenCalledTimes(1)
+  })
+
+  it('searches every room type returned by the catalog API', async () => {
+    const AvailabilitySearchStub = defineComponent({
+      emits: ['search'],
+      template:
+        '<button data-test="search" @click="$emit(\'search\', input)" />',
+      setup() {
+        return { input: searchInput }
+      },
+    })
+    const wrapper = mount(IndexPage, {
+      global: {
+        components: { AvailabilitySearch: AvailabilitySearchStub },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.findAll('#rooms article')).toHaveLength(2)
+    expect(wrapper.text()).toContain('Dynamic Garden')
+    await wrapper.get('[data-test="search"]').trigger('click')
+    await flushPromises()
+
+    expect(reservationStore.searchAvailabilityForRooms).toHaveBeenCalledWith([
+      expect.objectContaining({ roomTypeId: 'dynamic-room-a' }),
+      expect.objectContaining({ roomTypeId: 'dynamic-room-b' }),
+    ])
+  })
+
   it('does not show room cards when any availability request fails', async () => {
     const AvailabilitySearchStub = defineComponent({
       emits: ['search'],
@@ -91,7 +184,9 @@ describe('availability results', () => {
       },
     })
 
-    expect(wrapper.findAll('#rooms article')).toHaveLength(3)
+    await flushPromises()
+
+    expect(wrapper.findAll('#rooms article')).toHaveLength(2)
 
     await wrapper.get('[data-test="search"]').trigger('click')
     await flushPromises()

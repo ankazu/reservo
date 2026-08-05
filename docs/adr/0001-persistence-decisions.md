@@ -47,6 +47,14 @@ that room type. Inserts use the `(room_type_id, stay_date)` unique constraint
 with `ON CONFLICT DO NOTHING`; the reservation transaction still locks every
 relevant row before checking and incrementing reserved quantity.
 
+Provisioning also synchronizes existing requested stay-date rows to the current
+Room count only when both `reserved_quantity` and `blocked_quantity` are zero.
+Rows with either kind of occupancy retain their existing `total_quantity`, so a
+Room removal cannot make total inventory smaller than inventory already in use.
+The next availability or hold request for an unoccupied date performs the
+idempotent synchronization; no separate catalog scheduler is required for the
+MVP.
+
 ### Authentication boundary
 
 Authentication is outside the MVP. A reservation may be created for a guest

@@ -14,6 +14,7 @@
     "PROPERTY_NOT_FOUND": "找不到這個住宿場所。",
     "GUEST_LIMIT_EXCEEDED": "這個房型無法容納目前的入住人數。",
     "AVAILABILITY_FAILED": "目前無法查詢房況，請稍後再試。",
+    "CATALOG_FAILED": "目前無法取得住宿與房型資料，請稍後再試。",
     "DATABASE_UNAVAILABLE": "目前無法取得房況，請稍後再試。",
     "INVENTORY_NOT_READY": "房況資料尚未準備完成，請稍後再試。",
     "INSUFFICIENT_INVENTORY": "這段日期的房間數量不足。",
@@ -78,15 +79,19 @@
     "available": "有空房",
     "unavailable": "暫無空房",
     "empty": "這段日期目前沒有可預訂的房間，請試試其他日期。",
-    "standard": {
+    "loading": "正在載入房型…",
+    "catalogEmpty": "目前沒有可預訂的房型。"
+  },
+  "roomTypes": {
+    "00000000-0000-4000-8000-000000000101": {
       "name": "日光房",
       "description": "讓晨光叫你起床的房間，簡單而剛好。"
     },
-    "garden": {
+    "00000000-0000-4000-8000-000000000102": {
       "name": "庭院房",
       "description": "推開窗就是綠意，適合慢慢生活幾天。"
     },
-    "suite": {
+    "00000000-0000-4000-8000-000000000103": {
       "name": "留白套房",
       "description": "多一點空間，多一點不被打擾的時間。"
     }

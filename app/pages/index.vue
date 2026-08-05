@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { StaySearchInput } from '~~/shared/types/availability'
+import type { Catalog } from '~~/shared/types/catalog'
+import { useApiModules } from '../api'
+import { AppError } from '../api/errors'
 
 const { t, locale, setLocale } = useI18n()
 
@@ -22,7 +25,10 @@ const reservationLookupToken = ref('')
 const reservationLookupError = ref('')
 const accessLinkCopied = ref(false)
 const reservationStore = useReservationStore()
-const propertyId = '00000000-0000-4000-8000-000000000001'
+const catalogApi = useApiModules().catalog
+const catalog = ref<Catalog | null>(null)
+const isCatalogLoading = ref(true)
+const catalogErrorCode = ref<string | null>(null)
 const now = ref(Date.now())
 let expiryTimer: ReturnType<typeof setInterval> | undefined
 
@@ -68,32 +74,29 @@ const secureReservationUrl = computed(() => {
     : path
 })
 
-const rooms = [
-  {
-    key: 'standard',
-    icon: '01',
-    size: 28,
-    beds: 1,
-    roomTypeId: '00000000-0000-4000-8000-000000000101',
-    accent: 'bg-[#d2b99e]',
-  },
-  {
-    key: 'garden',
-    icon: '02',
-    size: 36,
-    beds: 1,
-    roomTypeId: '00000000-0000-4000-8000-000000000102',
-    accent: 'bg-[#a8b9a5]',
-  },
-  {
-    key: 'suite',
-    icon: '03',
-    size: 52,
-    beds: 2,
-    roomTypeId: '00000000-0000-4000-8000-000000000103',
-    accent: 'bg-[#c78062]',
-  },
-]
+const roomAccents = ['bg-[#d2b99e]', 'bg-[#a8b9a5]', 'bg-[#c78062]']
+const rooms = computed(() =>
+  (catalog.value?.roomTypes ?? []).map((room, index) => ({
+    ...room,
+    roomTypeId: room.id,
+    icon: String(index + 1).padStart(2, '0'),
+    accent: roomAccents[index % roomAccents.length],
+  })),
+)
+
+async function loadCatalog() {
+  isCatalogLoading.value = true
+  catalogErrorCode.value = null
+  try {
+    catalog.value = await catalogApi.getCatalog()
+  } catch (error) {
+    catalog.value = null
+    catalogErrorCode.value =
+      error instanceof AppError ? error.code : 'CATALOG_FAILED'
+  } finally {
+    isCatalogLoading.value = false
+  }
+}
 
 async function toggleLocale() {
   const nextLocale = locale.value === 'zh-TW' ? 'en' : 'zh-TW'
@@ -107,7 +110,14 @@ const availabilityErrorMessage = computed(() => {
   return t(`errors.${code}`, {}, t('errors.UNKNOWN'))
 })
 
+const catalogErrorMessage = computed(() => {
+  const code = catalogErrorCode.value
+  if (!code) return null
+  return t(`errors.${code}`, {}, t('errors.UNKNOWN'))
+})
+
 async function submitSearch(input: StaySearchInput) {
+  if (isCatalogLoading.value || !catalog.value) return
   checkIn.value = input.checkInDate
   checkOut.value = input.checkOutDate
   guests.value = input.guests
@@ -117,7 +127,7 @@ async function submitSearch(input: StaySearchInput) {
   reservationStore.clearReservation()
   reservationStore.clearAvailability()
   await reservationStore.searchAvailabilityForRooms(
-    rooms.map((room) => ({
+    rooms.value.map((room) => ({
       roomTypeId: room.roomTypeId,
       checkInDate: checkIn.value,
       checkOutDate: checkOut.value,
@@ -146,6 +156,7 @@ function selectRoom(roomId: string) {
 
 onBeforeUnmount(reservationStore.cancelAvailability)
 onMounted(() => {
+  void loadCatalog()
   expiryTimer = setInterval(() => {
     now.value = Date.now()
   }, 1000)
@@ -164,7 +175,8 @@ onBeforeUnmount(() => {
 
 async function createHold() {
   reservationFormError.value = ''
-  if (!selectedRoomId.value) return
+  const propertyId = catalog.value?.property.id
+  if (!selectedRoomId.value || !propertyId) return
   if (!guestName.value.trim() || !guestEmail.value.trim()) {
     reservationFormError.value = t('reservation.errors.required')
     return
@@ -299,7 +311,7 @@ async function lookupReservation() {
 
     <AvailabilitySearch
       :today="today"
-      :loading="reservationStore.isAvailabilityLoading"
+      :loading="isCatalogLoading || reservationStore.isAvailabilityLoading"
       :api-error="availabilityErrorMessage"
       :has-searched="hasSearched"
       @search="submitSearch"
@@ -326,12 +338,12 @@ async function lookupReservation() {
         </p>
       </div>
       <div
-        v-if="!availabilityErrorMessage"
+        v-if="!availabilityErrorMessage && !catalogErrorMessage"
         class="grid gap-[18px] md:grid-cols-3"
       >
         <article
           v-for="room in rooms"
-          :key="room.key"
+          :key="room.id"
           class="border border-stone-300 bg-[#eeece5]"
         >
           <div class="relative h-[200px] overflow-hidden" :class="room.accent">
@@ -345,7 +357,7 @@ async function lookupReservation() {
           <div class="p-[23px_22px_20px]">
             <div class="flex items-baseline justify-between gap-3">
               <h3 class="font-serif text-[23px] font-medium">
-                {{ t(`rooms.${room.key}.name`) }}
+                {{ t(`roomTypes.${room.id}.name`, {}, room.name) }}
               </h3>
               <span
                 v-if="
@@ -362,7 +374,7 @@ async function lookupReservation() {
               </span>
             </div>
             <p class="min-h-[42px] text-[13px] leading-6 text-moss">
-              {{ t(`rooms.${room.key}.description`) }}
+              {{ t(`roomTypes.${room.id}.description`, {}, room.description) }}
             </p>
             <div
               v-if="reservationStore.availabilityByRoomTypeId[room.roomTypeId]"
@@ -392,9 +404,7 @@ async function lookupReservation() {
             <div
               class="flex gap-3 border-t border-stone-300 pt-4 text-[10px] text-moss"
             >
-              <span>{{ t('rooms.area', { size: room.size }) }}</span
-              ><span>{{ t('rooms.beds', { count: room.beds }) }}</span
-              ><span>{{ t('rooms.guests', { count: guests }) }}</span>
+              <span>{{ t('rooms.guests', { count: room.maxGuests }) }}</span>
             </div>
             <button
               class="pt-5 text-xs text-clay hover:underline"
@@ -417,6 +427,23 @@ async function lookupReservation() {
           </div>
         </article>
       </div>
+      <p v-if="isCatalogLoading" class="mt-8 text-sm text-moss" role="status">
+        {{ t('rooms.loading') }}
+      </p>
+      <p
+        v-else-if="catalogErrorMessage"
+        class="mt-8 border border-stone-300 bg-[#eeece5] p-5 text-sm text-moss"
+        role="alert"
+      >
+        {{ catalogErrorMessage }}
+      </p>
+      <p
+        v-else-if="rooms.length === 0"
+        class="mt-8 border border-stone-300 bg-[#eeece5] p-5 text-sm text-moss"
+        role="status"
+      >
+        {{ t('rooms.catalogEmpty') }}
+      </p>
       <p
         v-if="
           hasSearched &&

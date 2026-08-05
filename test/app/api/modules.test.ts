@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { createAvailabilityApi } from '../../../app/api/availability'
+import { createCatalogApi } from '../../../app/api/catalog'
 import { createFetchApiClient } from '../../../app/api/client'
 import { createReservationsApi } from '../../../app/api/reservations'
 import { AppError } from '../../../app/api/errors'
@@ -71,6 +72,59 @@ describe('availability API module', () => {
         guests: 2,
       }),
     ).rejects.toMatchObject({ code: 'INSUFFICIENT_INVENTORY' })
+  })
+})
+
+describe('catalog API module', () => {
+  it('loads the property and room types as one catalog', async () => {
+    const client = createFakeClient()
+    client.get
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          id: 'property-1',
+          name: 'Reservo Hotel',
+          timezone: 'Asia/Taipei',
+          currency: 'TWD',
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            id: 'room-type-1',
+            propertyId: 'property-1',
+            name: 'Garden Room',
+            description: 'Garden view',
+            maxGuests: 2,
+            nightlyPrice: 5800,
+          },
+        ],
+      })
+
+    const result = await createCatalogApi(client).getCatalog()
+
+    expect(result.property.id).toBe('property-1')
+    expect(result.roomTypes).toHaveLength(1)
+    expect(client.get).toHaveBeenNthCalledWith(1, '/api/property')
+    expect(client.get).toHaveBeenNthCalledWith(2, '/api/room-types')
+  })
+
+  it('rejects the complete catalog when either response fails', async () => {
+    const client = createFakeClient()
+    client.get
+      .mockResolvedValueOnce({
+        success: true,
+        data: { id: 'property-1' },
+      })
+      .mockResolvedValueOnce({
+        success: false,
+        error: { code: 'CATALOG_FAILED', message: 'CATALOG_FAILED' },
+      })
+
+    await expect(createCatalogApi(client).getCatalog()).rejects.toMatchObject({
+      code: 'CATALOG_FAILED',
+    })
   })
 })
 
