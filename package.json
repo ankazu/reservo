@@ -49,5 +49,9 @@
     "typescript": "^6.0.3",
     "vitest": "^3.2.4",
     "vue-tsc": "^3.3.9"
+  },
+  "optionalDependencies": {
+    "@oxc-parser/binding-linux-x64-gnu": "^0.141.0",
+    "@oxc-transform/binding-linux-x64-gnu": "^0.141.0"
   }
 }
