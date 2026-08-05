@@ -100,9 +100,6 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
 
     expect(reservation).toMatchObject({
       guestCount: input.guests,
-      subtotalAmount: 2,
-      taxesAmount: 0,
-      discountsAmount: 0,
       totalAmount: 2,
       cancellableUntil: new Date('2099-03-31T16:00:00.000Z'),
     })

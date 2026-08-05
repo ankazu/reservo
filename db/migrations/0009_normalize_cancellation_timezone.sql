@@ -8,7 +8,7 @@ WHERE "cancellable_until" IS NULL;
 -- property-timezone-derived policy. This is a heuristic: customized deadlines
 -- with a different value are preserved, but a customized deadline that happens
 -- to equal the legacy value cannot be distinguished and is normalized too.
-WITH valid_properties AS (
+WITH valid_properties AS MATERIALIZED (
   SELECT p."id", p."timezone"
   FROM "properties" p
   JOIN pg_timezone_names tz ON tz."name" = p."timezone"
