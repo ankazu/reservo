@@ -26,12 +26,4 @@ function run(command, args) {
 }
 
 run(npmCommand, ['run', 'db:migrate'])
-run(npmCommand, [
-  'exec',
-  'vitest',
-  '--',
-  'run',
-  '--setupFiles',
-  'test/integration-setup.ts',
-  'test/server/integration',
-])
+run(npmCommand, ['exec', 'vitest', '--', 'run', 'test/server/integration'])
