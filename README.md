@@ -111,6 +111,14 @@ npm run check
 
 目前 PostgreSQL integration tests 在沒有 `DATABASE_URL` 時會顯示 skipped。公開部署前的 CI release gate 必須提供真實 PostgreSQL，並將必要 integration tests skipped 視為失敗；這項工作列在主計劃 Slice 3。
 
+## 公開 request 防護
+
+公開 availability、reservation lookup 與 hold routes 有 application-level fixed-window rate limit。Hold 另以 normalized guest email 限制 15 分鐘內最多 3 次，並以 client IP 限制 15 分鐘內最多 5 次；availability 與 lookup 分別限制每分鐘 60 與 30 次。限流狀態只存在單一 application process，不跨 instances 共用，刻意不為 MVP 引入 Redis。
+
+Production hosting／reverse proxy 必須保留可信的 client IP，並在 edge 設定 rate limit；Node server deployment 可使用 [`deploy/nginx/reservo.conf`](deploy/nginx/reservo.conf) 作為基線。只有在 proxy 會清除 client 傳入值並重建 `X-Forwarded-For` 時，才設定 `RESERVO_TRUST_PROXY=true`；否則 server 不信任 forwarded-IP header。Application 超限 response 為 `429 RATE_LIMITED` 並包含 `Retry-After`。
+
+Stay date policy 以 `Asia/Taipei` 今日為邊界，最多 30 晚、最遠可在 365 天後入住。Hold JSON body 上限為 8 KiB，`Idempotency-Key` 上限為 128 bytes。
+
 ## 常用指令
 
 | 指令                   | 用途                                  |
@@ -148,4 +156,4 @@ Production 必須定期呼叫受 secret 保護的 expiration endpoint，釋放�
 
 ## 目前限制
 
-這是 guest-checkout MVP，目前不包含會員系統、真正 payment provider、Redis、多住宿場所、多幣別、複雜優惠或完整 admin platform。公開部署前仍需完成主計劃列出的 access token、request bounds、CI PostgreSQL、動態 room catalog、inventory operations 與 E2E slices。
+這是 guest-checkout MVP，目前不包含會員系統、真正 payment provider、Redis、多住宿場所、多幣別、複雜優惠或完整 admin platform。公開部署前仍需完成主計劃列出的 access token、CI PostgreSQL、動態 room catalog、inventory operations 與 E2E slices。

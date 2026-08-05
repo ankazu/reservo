@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  createReservationPolicySchema,
   createReservationSchema,
+  createReservationSearchPolicySchema,
   reservationIdSchema,
   reservationSearchSchema,
 } from '../../../shared/schemas/reservation'
@@ -12,6 +14,8 @@ const validDates = {
 }
 
 describe('reservation schemas', () => {
+  const today = '2026-08-05'
+
   it('accepts UUID reservation IDs and rejects malformed IDs', () => {
     expect(
       reservationIdSchema.safeParse('11111111-1111-4111-8111-111111111111')
@@ -92,5 +96,52 @@ describe('reservation schemas', () => {
     })
 
     expect(result.success).toBe(false)
+  })
+
+  it.each([
+    ['availability', createReservationSearchPolicySchema(today)],
+    ['hold', createReservationPolicySchema(today)],
+  ])('applies the same date policy to %s requests', (_name, schema) => {
+    const common = {
+      roomTypeId: '11111111-1111-4111-8111-111111111111',
+      quantity: 1,
+      guests: 1,
+    }
+    const holdFields = {
+      propertyId: '22222222-2222-4222-8222-222222222222',
+      guestName: 'Guest',
+      guestEmail: 'guest@example.com',
+    }
+    const input =
+      'propertyId' in schema.shape ? { ...common, ...holdFields } : common
+
+    expect(
+      schema.safeParse({
+        ...input,
+        checkInDate: '2026-08-04',
+        checkOutDate: '2026-08-06',
+      }).success,
+    ).toBe(false)
+    expect(
+      schema.safeParse({
+        ...input,
+        checkInDate: '2026-08-06',
+        checkOutDate: '2026-09-06',
+      }).success,
+    ).toBe(false)
+    expect(
+      schema.safeParse({
+        ...input,
+        checkInDate: '2027-08-06',
+        checkOutDate: '2027-08-07',
+      }).success,
+    ).toBe(false)
+    expect(
+      schema.safeParse({
+        ...input,
+        checkInDate: '2027-08-05',
+        checkOutDate: '2027-08-06',
+      }).success,
+    ).toBe(true)
   })
 })

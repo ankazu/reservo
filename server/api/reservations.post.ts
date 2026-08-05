@@ -1,6 +1,11 @@
-import { defineEventHandler, getHeader, readBody, setResponseStatus } from 'h3'
+import { defineEventHandler, getHeader, setResponseStatus } from 'h3'
 
-import { createReservationSchema } from '../../shared/schemas/reservation'
+import {
+  MAX_IDEMPOTENCY_KEY_BYTES,
+  MAX_REQUEST_FINGERPRINT_BYTES,
+  MAX_RESERVATION_BODY_BYTES,
+} from '../../shared/constants/reservation-policy'
+import { createReservationPolicySchema } from '../../shared/schemas/reservation'
 import type { ApiResponse } from '../../shared/types/api'
 import { getReservationRequestFingerprint } from '../../shared/utils/reservation-request'
 import {
@@ -8,6 +13,14 @@ import {
   ReservationServiceError,
 } from '../services/reservation/create-hold'
 import { db } from '../utils/db'
+import {
+  enforceClientRateLimit,
+  enforceRateLimit,
+  holdEmailRateLimiter,
+  holdIpRateLimiter,
+  isHeaderWithinByteLimit,
+  readLimitedJsonBody,
+} from '../utils/request-guards'
 
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
@@ -23,6 +36,16 @@ export default defineEventHandler(
         },
       }
     }
+    if (!isHeaderWithinByteLimit(idempotencyKey, MAX_IDEMPOTENCY_KEY_BYTES)) {
+      setResponseStatus(event, 400)
+      return {
+        success: false,
+        error: {
+          code: 'IDEMPOTENCY_KEY_INVALID',
+          message: 'IDEMPOTENCY_KEY_INVALID',
+        },
+      }
+    }
     if (!requestFingerprint) {
       setResponseStatus(event, 400)
       return {
@@ -32,6 +55,40 @@ export default defineEventHandler(
           message: 'REQUEST_FINGERPRINT_REQUIRED',
         },
       }
+    }
+    if (
+      !isHeaderWithinByteLimit(
+        requestFingerprint,
+        MAX_REQUEST_FINGERPRINT_BYTES,
+      )
+    ) {
+      setResponseStatus(event, 400)
+      return {
+        success: false,
+        error: {
+          code: 'REQUEST_FINGERPRINT_INVALID',
+          message: 'REQUEST_FINGERPRINT_INVALID',
+        },
+      }
+    }
+
+    const ipRateLimit = enforceClientRateLimit(
+      event,
+      holdIpRateLimiter,
+      idempotencyKey,
+    )
+    if (ipRateLimit) return ipRateLimit
+
+    const bodyResult = await readLimitedJsonBody(
+      event,
+      MAX_RESERVATION_BODY_BYTES,
+    )
+    if (!bodyResult.success) {
+      setResponseStatus(event, bodyResult.tooLarge ? 413 : 400)
+      const code = bodyResult.tooLarge
+        ? 'REQUEST_BODY_TOO_LARGE'
+        : 'INVALID_REQUEST'
+      return { success: false, error: { code, message: code } }
     }
     if (!db) {
       setResponseStatus(event, 503)
@@ -44,7 +101,7 @@ export default defineEventHandler(
       }
     }
 
-    const parsed = createReservationSchema.safeParse(await readBody(event))
+    const parsed = createReservationPolicySchema().safeParse(bodyResult.body)
     if (!parsed.success) {
       setResponseStatus(event, 400)
       return {
@@ -56,6 +113,13 @@ export default defineEventHandler(
         },
       }
     }
+    const emailRateLimit = enforceRateLimit(
+      event,
+      holdEmailRateLimiter,
+      parsed.data.guestEmail.toLowerCase(),
+      idempotencyKey,
+    )
+    if (emailRateLimit) return emailRateLimit
     if (requestFingerprint !== getReservationRequestFingerprint(parsed.data)) {
       setResponseStatus(event, 400)
       return {

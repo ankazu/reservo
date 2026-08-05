@@ -5,8 +5,8 @@
 # Reservo 訂房系統 MVP 主計劃
 
 - 最後更新：2026-08-05
-- 目前階段：開發環境基線已完成，正在補齊公開 request 的日期邊界與濫用防護
-- 唯一下一步：[Slice 1：日期邊界與 request abuse 防護](#slice-1日期邊界與-request-abuse-防護)
+- 目前階段：公開 request 日期邊界與濫用防護已完成，下一步補齊 guest reservation access
+- 唯一下一步：[Slice 2：Guest reservation access](#slice-2guest-reservation-access)
 
 ## 1. 目標與範圍
 
@@ -212,10 +212,13 @@ GET /api/room-types
 - Reservation details API
 - 首頁搜尋、availability、hold、倒數、confirm、cancel、retry 與簡易 lookup UI
 - Error code 到 `zh-TW`／`en` i18n
+- Availability 與 hold 共用日期政策（台北今日、30 晚、365 天 booking window）
+- Availability、reservation lookup 與 hold 的 application-level rate limit
+- Hold request 8 KiB body、128-byte idempotency key 與 30-row expansion 上限
 
 ### 目前驗證證據
 
-- 2026-08-05：Vitest 60 passed、10 skipped。
+- 2026-08-05：Vitest 71 passed、10 skipped。
 - 被 skipped 的 10 個 tests 需要真實 `DATABASE_URL`，包含重要 PostgreSQL integration coverage，因此不算 release verification。
 - UI 局部 typecheck 已存在，但沒有覆蓋完整 pages、stores、server 與 tests。
 - 尚無 CI、完整 Playwright flow 與可重現的 production deployment verification。
@@ -244,7 +247,7 @@ GET /api/room-types
 
 ### Slice 1：日期邊界與 request abuse 防護
 
-優先級：P0；狀態：下一步。
+優先級：P0；狀態：✅ 完成（2026-08-05）。
 
 - 決定並實作最大住宿晚數與 booking window。
 - Server 拒絕過去入住日期與過大日期範圍。
@@ -255,9 +258,17 @@ GET /api/room-types
 
 完成條件：匿名 request 無法建立過去訂房、展開無界 inventory rows，或用大量 holds 長時間占滿庫存而完全無限制。
 
+驗證證據：
+
+- Availability 與 hold route 在每次 request 以 `Asia/Taipei` 今日建立同一份 Zod date policy；拒絕過去入住、超過 30 晚與超過 365 天 booking window。
+- 單一房型 request 最多展開 30 個 inventory rows；hold body 上限 8 KiB，idempotency key 上限 128 bytes。
+- Application layer 對 availability（60／分鐘／IP）、lookup（30／分鐘／IP）、hold（5／15 分鐘／IP、3／15 分鐘／normalized email）回傳一致的 `429 RATE_LIMITED` 與 `Retry-After`。
+- Rate-limit state 刻意維持 process-local，不加入 Redis；`deploy/nginx/reservo.conf` 提供 production Node server 的 proxy rate-limit 與可信 client IP 基線。
+- Focused schema、HTTP guard 與 limiter tests 已涵蓋共同日期政策、declared／streamed body 上限、header 上限、idempotent replay、window reset 與 client isolation。
+
 ### Slice 2：Guest reservation access
 
-優先級：P0；狀態：未開始；實作前先新增 ADR。
+優先級：P0；狀態：下一步；實作前先新增 ADR。
 
 - 建立高 entropy reservation access token。
 - API 只回傳一次明文 token，database 只保存 hash。

@@ -7,9 +7,19 @@ import {
   ReservationLookupError,
 } from '../../services/reservation/get-reservation'
 import { db } from '../../utils/db'
+import {
+  enforceClientRateLimit,
+  reservationLookupRateLimiter,
+} from '../../utils/request-guards'
 
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
+    const rateLimit = enforceClientRateLimit(
+      event,
+      reservationLookupRateLimiter,
+    )
+    if (rateLimit) return rateLimit
+
     const parsedReservationId = reservationIdSchema.safeParse(
       getRouterParam(event, 'reservationId'),
     )

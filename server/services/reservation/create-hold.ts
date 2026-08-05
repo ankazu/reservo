@@ -3,6 +3,7 @@ import {
   getNightCount,
   getStayDates,
 } from '../../../shared/types/reservation'
+import { HOLD_DURATION_MS } from '../../../shared/constants/reservation-policy'
 import { calculatePriceQuote } from '../../../shared/utils/pricing'
 import { getReservationRequestFingerprint } from '../../../shared/utils/reservation-request'
 import type { CreateReservationInput } from './types'
@@ -132,7 +133,7 @@ export async function createReservationHold(
         discountsAmount: quote.discounts,
         totalAmount: quote.total,
         cancellableUntil: getCancellableUntil(input.checkInDate),
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+        expiresAt: new Date(Date.now() + HOLD_DURATION_MS),
         idempotencyKey,
         requestFingerprint,
       })

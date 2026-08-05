@@ -1,14 +1,21 @@
 import { defineEventHandler, getQuery, setResponseStatus } from 'h3'
 
-import { reservationSearchSchema } from '../../shared/schemas/reservation'
+import { createReservationSearchPolicySchema } from '../../shared/schemas/reservation'
 import type { ApiResponse } from '../../shared/types/api'
 import { getAvailability } from '../services/reservation/availability'
 import { db } from '../utils/db'
+import {
+  availabilityRateLimiter,
+  enforceClientRateLimit,
+} from '../utils/request-guards'
 
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
+    const rateLimit = enforceClientRateLimit(event, availabilityRateLimiter)
+    if (rateLimit) return rateLimit
+
     const query = getQuery(event)
-    const parsed = reservationSearchSchema.safeParse({
+    const parsed = createReservationSearchPolicySchema().safeParse({
       roomTypeId: query.roomTypeId,
       checkInDate: query.checkInDate,
       checkOutDate: query.checkOutDate,

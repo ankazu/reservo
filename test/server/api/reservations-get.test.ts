@@ -12,6 +12,8 @@ vi.mock('h3', () => ({
   defineEventHandler: (handler: unknown) => handler,
   getRouterParam: (event: { params?: Record<string, string> }) =>
     event.params?.reservationId,
+  getRequestIP: () => '203.0.113.20',
+  setResponseHeader: () => undefined,
   setResponseStatus: (event: { status?: number }, status: number) => {
     event.status = status
   },
