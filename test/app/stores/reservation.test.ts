@@ -92,6 +92,7 @@ describe('reservation store availability', () => {
     const store = createReservationStore(api)
     const request = store.searchAvailability(input)
     const signal = api.availability.getAvailability.mock.calls[0][1].signal
+    store.availabilityErrorCode.value = 'AVAILABILITY_FAILED'
 
     store.clearAvailability()
     expect(signal.aborted).toBe(true)
@@ -100,6 +101,16 @@ describe('reservation store availability', () => {
 
     expect(store.availabilityByRoomTypeId.value).toEqual({})
     expect(store.isAvailabilityLoading.value).toBe(false)
+    expect(store.availabilityErrorCode.value).toBeNull()
+  })
+
+  it('keeps availability errors isolated from reservation resets', () => {
+    const store = createReservationStore(createApi())
+    store.availabilityErrorCode.value = 'AVAILABILITY_FAILED'
+
+    store.clearReservation()
+
+    expect(store.availabilityErrorCode.value).toBe('AVAILABILITY_FAILED')
   })
 
   it('stores AppError codes without exposing transport errors', async () => {
@@ -111,8 +122,9 @@ describe('reservation store availability', () => {
 
     await store.searchAvailability(input)
 
-    expect(store.errorCode.value).toBe('AVAILABILITY_FAILED')
-    expect(store.errorDetails.value).toEqual({ status: 500 })
+    expect(store.availabilityErrorCode.value).toBe('AVAILABILITY_FAILED')
+    expect(store.availabilityErrorDetails.value).toEqual({ status: 500 })
+    expect(store.errorCode.value).toBeNull()
   })
 
   it('keeps compatible rooms when another room is unavailable for the guest count', async () => {
@@ -144,7 +156,7 @@ describe('reservation store availability', () => {
         (result) => result.available,
       ),
     ).toHaveLength(1)
-    expect(store.errorCode.value).toBeNull()
+    expect(store.availabilityErrorCode.value).toBeNull()
   })
 
   it('fails the complete search when one room availability request rejects', async () => {
@@ -164,24 +176,32 @@ describe('reservation store availability', () => {
     ])
 
     expect(store.availabilityByRoomTypeId.value).toEqual({})
-    expect(store.errorCode.value).toBe('AVAILABILITY_FAILED')
+    expect(store.availabilityErrorCode.value).toBe('AVAILABILITY_FAILED')
   })
 
-  it('replaces an availability error with results after retrying', async () => {
+  it('replaces a failed multi-room search with complete results after retrying', async () => {
     const api = createApi()
-    api.availability.getAvailability
-      .mockRejectedValueOnce(new AppError('AVAILABILITY_FAILED'))
-      .mockResolvedValueOnce(availabilityResult(input.roomTypeId))
+    let shouldFail = true
+    api.availability.getAvailability.mockImplementation(
+      (request: typeof input) => {
+        if (shouldFail && request.roomTypeId === 'room-1')
+          return Promise.reject(new AppError('AVAILABILITY_FAILED'))
+        return Promise.resolve(availabilityResult(request.roomTypeId))
+      },
+    )
     const store = createReservationStore(api)
+    const inputs = [input, { ...input, roomTypeId: 'room-2' }]
 
-    await store.searchAvailability(input)
-    expect(store.errorCode.value).toBe('AVAILABILITY_FAILED')
+    await store.searchAvailabilityForRooms(inputs)
+    expect(store.availabilityErrorCode.value).toBe('AVAILABILITY_FAILED')
 
-    await store.searchAvailability(input)
+    shouldFail = false
+    await store.searchAvailabilityForRooms(inputs)
 
-    expect(store.errorCode.value).toBeNull()
+    expect(store.availabilityErrorCode.value).toBeNull()
     expect(store.availabilityByRoomTypeId.value).toEqual({
-      [input.roomTypeId]: availabilityResult(input.roomTypeId),
+      'room-1': availabilityResult('room-1'),
+      'room-2': availabilityResult('room-2'),
     })
   })
 })

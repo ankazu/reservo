@@ -10,6 +10,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "typecheck:ui": "vue-tsc --noEmit -p tsconfig.ui.json",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
@@ -26,9 +27,14 @@
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.14.0",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.4.11",
     "drizzle-kit": "^0.31.10",
+    "happy-dom": "^20.11.1",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "vitest": "^3.2.4"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^3.3.9"
   }
 }

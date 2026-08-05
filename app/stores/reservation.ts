@@ -31,6 +31,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
   const isAvailabilityLoading = ref(false)
   const isLoading = ref(false)
   const isLookupLoading = ref(false)
+  const availabilityErrorCode = ref<string | null>(null)
+  const availabilityErrorDetails = ref<unknown>(undefined)
   const errorCode = ref<string | null>(null)
   const errorDetails = ref<unknown>(undefined)
   const lookupErrorCode = ref<string | null>(null)
@@ -55,6 +57,17 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     errorDetails.value = undefined
   }
 
+  function captureAvailabilityError(error: unknown) {
+    if (isAbortError(error)) return
+    if (error instanceof AppError) {
+      availabilityErrorCode.value = error.code
+      availabilityErrorDetails.value = error.details
+      return
+    }
+    availabilityErrorCode.value = 'UNKNOWN'
+    availabilityErrorDetails.value = undefined
+  }
+
   async function runAvailabilitySearch(
     inputs: ReservationSearchInput[],
   ): Promise<void> {
@@ -63,8 +76,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     availabilityController = controller
     const requestId = ++availabilityRequest
     isAvailabilityLoading.value = true
-    errorCode.value = null
-    errorDetails.value = undefined
+    availabilityErrorCode.value = null
+    availabilityErrorDetails.value = undefined
 
     try {
       const results = await Promise.all(
@@ -84,7 +97,7 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     } catch (error) {
       if (!isAbortError(error) && requestId === availabilityRequest) {
         availabilityByRoomTypeId.value = {}
-        captureError(error)
+        captureAvailabilityError(error)
       }
     } finally {
       if (requestId === availabilityRequest) isAvailabilityLoading.value = false
@@ -109,6 +122,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     availabilityController = null
     availabilityRequest += 1
     isAvailabilityLoading.value = false
+    availabilityErrorCode.value = null
+    availabilityErrorDetails.value = undefined
   }
 
   function cancelAvailability() {
@@ -222,6 +237,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     isAvailabilityLoading,
     isLoading,
     isLookupLoading,
+    availabilityErrorCode,
+    availabilityErrorDetails,
     errorCode,
     errorDetails,
     lookupErrorCode,

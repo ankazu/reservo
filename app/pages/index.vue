@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { StaySearchInput } from '~~/shared/types/availability'
+
 const { t, locale, setLocale } = useI18n()
 
 const today = new Intl.DateTimeFormat('en-CA', {
@@ -11,7 +13,6 @@ const checkIn = ref(today)
 const checkOut = ref('')
 const guests = ref(2)
 const hasSearched = ref(false)
-const formError = ref('')
 const selectedRoomId = ref<string | null>(null)
 const guestName = ref('')
 const guestEmail = ref('')
@@ -116,18 +117,21 @@ async function toggleLocale() {
   locale.value = nextLocale
 }
 
-async function submitSearch() {
-  formError.value = ''
+const availabilityErrorMessage = computed(() => {
+  const code = reservationStore.availabilityErrorCode
+  if (!code) return null
+  return t(`errors.${code}`, {}, t('errors.UNKNOWN'))
+})
+
+async function submitSearch(input: StaySearchInput) {
+  checkIn.value = input.checkInDate
+  checkOut.value = input.checkOutDate
+  guests.value = input.guests
   hasSearched.value = false
   selectedRoomId.value = null
   reservationFormError.value = ''
   reservationStore.clearReservation()
   reservationStore.clearAvailability()
-  if (!checkIn.value || !checkOut.value || checkOut.value <= checkIn.value) {
-    formError.value = t('search.errors.dateRange')
-    hasSearched.value = false
-    return
-  }
   await reservationStore.searchAvailabilityForRooms(
     rooms.map((room) => ({
       roomTypeId: room.roomTypeId,
@@ -137,16 +141,16 @@ async function submitSearch() {
       guests: guests.value,
     })),
   )
-  if (reservationStore.errorCode) {
-    formError.value = t(
-      `errors.${reservationStore.errorCode}`,
-      {},
-      t('errors.UNKNOWN'),
-    )
+  if (reservationStore.availabilityErrorCode) {
     hasSearched.value = false
   } else {
     hasSearched.value = true
   }
+}
+
+function clearSearchError() {
+  hasSearched.value = false
+  reservationStore.clearAvailability()
 }
 
 function selectRoom(roomId: string) {
@@ -293,98 +297,14 @@ async function lookupReservation() {
       </div>
     </section>
 
-    <section
-      class="mx-auto grid w-[calc(100%-48px)] max-w-[1180px] gap-6 bg-ink px-5 py-7 text-paper md:grid-cols-[210px_1fr] md:px-9"
-      aria-labelledby="search-title"
-    >
-      <div>
-        <p class="mb-2.5 text-[11px] uppercase tracking-[0.14em] text-peach">
-          {{ t('search.eyebrow') }}
-        </p>
-        <h2 id="search-title" class="font-serif text-[25px] font-medium">
-          {{ t('search.title') }}
-        </h2>
-      </div>
-      <form
-        class="grid grid-cols-2 gap-3 md:grid-cols-[repeat(3,1fr)_auto]"
-        :aria-busy="reservationStore.isAvailabilityLoading"
-        @submit.prevent="submitSearch"
-      >
-        <label
-          class="flex flex-col gap-2 text-[10px] uppercase tracking-[0.1em] text-[#aeb9b0]"
-          ><span>{{ t('search.checkIn') }}</span
-          ><input
-            v-model="checkIn"
-            class="border-0 border-b border-[#647169] bg-transparent px-0 py-1.5 text-paper outline-none focus:border-peach"
-            type="date"
-            :min="today"
-            required
-        /></label>
-        <label
-          class="flex flex-col gap-2 text-[10px] uppercase tracking-[0.1em] text-[#aeb9b0]"
-          ><span>{{ t('search.checkOut') }}</span
-          ><input
-            v-model="checkOut"
-            class="border-0 border-b border-[#647169] bg-transparent px-0 py-1.5 text-paper outline-none focus:border-peach"
-            type="date"
-            :min="checkIn || today"
-            required
-        /></label>
-        <label
-          class="flex flex-col gap-2 text-[10px] uppercase tracking-[0.1em] text-[#aeb9b0]"
-          ><span>{{ t('search.guests') }}</span
-          ><select
-            v-model="guests"
-            class="border-0 border-b border-[#647169] bg-transparent px-0 py-1.5 text-paper outline-none focus:border-peach"
-          >
-            <option
-              v-for="count in 6"
-              :key="count"
-              :value="count"
-              class="text-ink"
-            >
-              {{ count }} {{ t('search.guestUnit') }}
-            </option>
-          </select></label
-        >
-        <button
-          class="col-span-2 self-end bg-clay px-5 py-3 text-white transition hover:bg-[#ad593b] md:col-span-1"
-          type="submit"
-          :disabled="reservationStore.isAvailabilityLoading"
-        >
-          {{
-            reservationStore.isAvailabilityLoading
-              ? t('search.loading')
-              : t('search.submit')
-          }}
-          <span v-if="!reservationStore.isAvailabilityLoading" class="ml-3"
-            >↗</span
-          >
-        </button>
-      </form>
-      <div
-        v-if="formError"
-        class="flex flex-wrap items-center gap-3 text-xs text-peach md:col-start-2"
-      >
-        <p role="alert">{{ formError }}</p>
-        <button
-          v-if="reservationStore.errorCode"
-          type="button"
-          class="border border-peach px-3 py-1.5 text-paper transition hover:bg-peach hover:text-ink focus:outline-none focus:ring-2 focus:ring-peach/60 disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="reservationStore.isAvailabilityLoading"
-          @click="submitSearch"
-        >
-          {{ t('search.retry') }}
-        </button>
-      </div>
-      <p
-        v-else-if="hasSearched"
-        class="text-xs text-[#c2d3bd] md:col-start-2"
-        role="status"
-      >
-        {{ t('search.success', { guests }) }}
-      </p>
-    </section>
+    <AvailabilitySearch
+      :today="today"
+      :loading="reservationStore.isAvailabilityLoading"
+      :api-error="availabilityErrorMessage"
+      :has-searched="hasSearched"
+      @search="submitSearch"
+      @clear-error="clearSearchError"
+    />
 
     <section
       id="rooms"

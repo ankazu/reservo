@@ -1,11 +1,14 @@
 import type { PriceQuote } from '../utils/pricing'
 
-export type ReservationSearchInput = {
-  roomTypeId: string
+export type StaySearchInput = {
   checkInDate: string
   checkOutDate: string
-  quantity: number
   guests: number
+}
+
+export type ReservationSearchInput = StaySearchInput & {
+  roomTypeId: string
+  quantity: number
 }
 
 export type AvailabilityResponse = {
