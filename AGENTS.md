@@ -14,6 +14,29 @@ Keep the MVP focused on one property and one currency. Do not introduce Redis,
 microservices, or multiple workspace packages unless the project scope is explicitly
 changed.
 
+## Documentation routing
+
+Use `docs/README.md` as the documentation index. Load documentation on demand; do
+not read every file under `docs/` for general context.
+
+- Product scope, current status, backlog, the active slice, or definition of done:
+  read only the relevant sections of `docs/booking-system-plan.md`.
+- ORM, migrations, money, date/time, guest checkout, payment, or cancellation
+  policy: additionally read `docs/adr/0001-persistence-decisions.md`.
+- Reservation idempotency or legacy fingerprint migrations: additionally read
+  `docs/adr/0002-idempotency-fingerprint-legacy.md`.
+- Multi-room availability aggregation, partial results, or retry behavior:
+  additionally read `docs/adr/0003-availability-search-failure-policy.md`.
+- Expiration deployment or scheduler operations: additionally read
+  `docs/maintenance-expiration.md`.
+
+Documents not listed by `docs/README.md` are non-canonical notes unless the user
+explicitly identifies one as a source. Do not use old reviews, reports, or local
+notes as requirements. Update progress and priorities in
+`docs/booking-system-plan.md`; do not create separate status, review, or roadmap
+documents. Record a new ADR only for a material decision that should remain stable
+across future implementation work.
+
 ## Repository structure
 
 Use Nuxt's conventional root-level directories:

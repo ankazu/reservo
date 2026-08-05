@@ -1,77 +1,103 @@
 > ⚠️ **重要文件：請勿刪除**
 >
-> 這是 Reservo 初始訂房系統 MVP 規劃文件。若需調整內容，請直接更新並保留此文件；重大架構決策請另外記錄在 `docs/adr/`。
+> 這是 Reservo MVP 的唯一主計劃。產品範圍、目前進度、缺口、優先級、下一個切片與完成條件都在此維護。重大決策另記錄於 `docs/adr/`；文件載入方式見 [文件入口](README.md)。
 
-# 訂房系統 MVP 規劃
+# Reservo 訂房系統 MVP 主計劃
 
-## 目標
+- 最後更新：2026-08-05
+- 目前階段：核心訂房流程已完成，正在補齊公開部署所需的安全、驗證與營運基線
+- 唯一下一步：[Slice 0：文件與開發環境基線](#slice-0文件與開發環境基線)
 
-建立一個以 Nuxt、Vue、TypeScript 與 Nitro Server 為核心的訂房系統 MVP。
+## 1. 目標與範圍
 
-第一版以單一 Nuxt 專案、單一住宿場所、單一幣別為範圍，優先完成可靠的房型搜尋、庫存控管與訂房流程。
+建立一個以 Nuxt、Vue、TypeScript 與 Nitro Server 為核心的訂房系統 MVP。第一版只支援：
 
-## 技術方向
+- 單一 Nuxt application
+- 單一住宿場所
+- 單一幣別 TWD
+- 固定 `Asia/Taipei` 業務時區
+- Guest checkout
+- 搜尋房型、建立暫存訂房、確認、取消、過期與查詢
+- 假付款確認，不串接真正 payment provider
 
-- 前端：Vue 3、Nuxt、TypeScript
-- 後端：Nuxt Nitro Server、Node.js、TypeScript
-- 資料庫：PostgreSQL
-- ORM：Drizzle ORM 或 Prisma，實作時擇一
-- 輸入驗證：Zod
-- 國際化：Nuxt i18n，預設 locale 為 `zh-TW`
-- 測試：Vitest；重要使用者流程再加入 Playwright
+MVP 的成功標準不是功能數量，而是：搜尋與庫存結果正確、不超賣、重複請求不重複訂房、狀態轉換可預期、訂房資料不被未授權讀取，且核心流程能在 CI 與接近 production 的環境重現。
 
-MVP 不使用 Redis，也不拆分成微服務或多個 workspace package。Nitro 的 `server/` 直接提供後端 API。
+### 明確不在 MVP
 
-## 核心領域概念
+- 會員註冊、登入、session 與會員訂單列表
+- 真正 payment provider 與退款
+- Redis、microservices、workspace 拆分
+- 多住宿場所、多幣別
+- 入住、退房、no-show
+- 複雜優惠碼、報表、渠道同步
+- audit logs
+- 多金流 adapter
 
-### Property
+只有在出現實際需求時才加入額外抽象：第二個金流才抽 adapter；確認有快取或併發瓶頸才加入 Redis；需要獨立部署才拆 workspace；支援第二個住宿場所才擴充 Property 管理。
 
-住宿場所，例如旅館或民宿。MVP 先假設系統只有一個 Property。
+## 2. 技術基線
 
-### RoomType
+- Frontend：Vue 3、Nuxt、TypeScript、Pinia
+- Backend：Nuxt Nitro Server、Node.js、TypeScript
+- Database：PostgreSQL
+- ORM／migration：Drizzle ORM、Drizzle Kit
+- Validation：Zod
+- i18n：Nuxt i18n，預設 `zh-TW`
+- Tests：Vitest；核心使用者流程使用 Playwright
+- Money：integer TWD amount，不用浮點數保存金額
 
-可販售的房型，例如雙人房、家庭房。客人訂的是房型，不是特定房號。
+完整 persistence、money、date/time、authentication boundary、payment 與 cancellation 決策見 [ADR 0001](adr/0001-persistence-decisions.md)。
 
-### Room
+## 3. 核心領域規則
 
-住宿場所中的實體房間，例如 101、102。MVP 保留此概念，但實體房間的分配可以延後到入住前或入住時。
+### 3.1 領域概念
 
-### RoomInventory
+- `Property`：住宿場所；MVP 只有一個。
+- `RoomType`：客人實際預訂的商品，例如雙人房。
+- `Room`：實體房間，例如 101；MVP 不做入住分房。
+- `RoomInventory`：某個 room type 在某個 stay date 的庫存。
+- `Reservation`：一次訂房交易與生命週期。
+- `ReservationItem`：房型、rate plan 與金額的歷史 snapshot。
 
-某個房型在某一天的庫存資料。可售數量計算如下：
+`Property`、`RoomType`、`Room`、`RoomInventory`、`Reservation` 與 `ReservationItem` 必須保持為不同概念。Guest 預訂 `RoomType`，不是特定 `Room`。
 
-```text
-available = total_quantity - reserved_quantity - blocked_quantity
-```
+### 3.2 日期
 
-### Reservation
-
-一次訂房交易，包含入住人、日期、狀態與總金額。
-
-### ReservationItem
-
-訂房中的房型與價格快照。需要保存房型名稱、方案名稱、每晚價格、稅金、折扣等資料，避免日後修改房型或價格時影響歷史訂單。
-
-## 日期規則
-
-住宿日期使用半開區間：
+住宿日期採半開區間：
 
 ```text
 [checkInDate, checkOutDate)
 ```
 
-入住日包含在住宿期間，退房日不包含。例如 6 月 1 日入住、6 月 3 日退房，實際住宿晚數是 6 月 1 日與 6 月 2 日，共 2 晚。
+晚數是 checkout 與 check-in 的日期差；checkout 當天不占庫存。Stay date 是 `YYYY-MM-DD`，日期計算使用 UTC-normalized calendar values，業務邊界使用固定 `Asia/Taipei`。
 
-## 訂房狀態
+公開 API 還必須補齊以下共同政策，且 availability 與 hold 使用同一份 schema／規則：
 
-MVP 先使用以下狀態：
+- check-in 不得早於台北今日
+- 最大住宿晚數
+- 最遠可預訂日期
+- request 展開後的最大 inventory row 數
 
-```ts
-type ReservationStatus =
-  'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED'
+最大住宿晚數與 booking window 的數值在 Slice 1 決定並記入本節；建議預設分別為 30 晚與 365 天。
+
+### 3.3 庫存
+
+```text
+available = total_quantity - reserved_quantity - blocked_quantity
 ```
 
-狀態轉換：
+`room_inventory` 必須對 `(room_type_id, stay_date)` 唯一。建立 hold 時，以下步驟必須在同一個 PostgreSQL transaction 完成：
+
+1. 準備所有需要的 inventory rows。
+2. Lock 每個 stay date 的 inventory row。
+3. 驗證每晚 availability 都足夠。
+4. 增加 `reserved_quantity`。
+5. 建立 `PENDING_PAYMENT` reservation、`expiresAt` 與 item snapshot。
+6. 任一步驟失敗即 rollback。
+
+Cancellation 與 expiration 必須安全且可重複執行，庫存不得釋放超過一次。
+
+### 3.4 訂房狀態
 
 ```text
 PENDING_PAYMENT → CONFIRMED
@@ -80,119 +106,55 @@ PENDING_PAYMENT → CANCELLED
 CONFIRMED       → CANCELLED
 ```
 
-取消規則：`reservations.cancellable_until` 保存取消期限；MVP 固定使用
-`Asia/Taipei`，期限是入住日台北時間 00:00，且必須嚴格早於該 timestamp
-才可取消。這項政策不使用 `properties.timezone`，因此 property 的 timezone
-設定不會改變新訂單或歷史訂單的取消期限。Migration 行為與歷史資料限制
-以 [persistence ADR](adr/0001-persistence-decisions.md) 為準。
+狀態只有：
 
-後續若加入入住、退房或未入住流程，再新增 `CHECKED_IN`、`CHECKED_OUT`、`NO_SHOW`。
-
-## 核心訂房流程
-
-```text
-搜尋可售房型
-  → 建立暫存訂房
-  → 鎖定指定日期的庫存
-  → 建立 PENDING_PAYMENT 訂房
-  → 付款成功後改為 CONFIRMED
-  → 付款逾時後改為 EXPIRED 並釋放庫存
+```ts
+type ReservationStatus =
+  'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED'
 ```
 
-### 防止超賣
+取消期限保存在 `reservations.cancellable_until`。MVP 固定使用入住日 `Asia/Taipei` 00:00，且只有嚴格早於該 timestamp 才能取消。詳細 migration 限制見 ADR 0001。
 
-建立暫存訂房時，必須在同一個 PostgreSQL transaction 中完成：
+### 3.5 Idempotency
 
-1. 取得指定房型、指定日期的 `room_inventory` row lock。
-2. 檢查每晚的 `available` 是否足夠。
-3. 增加 `reserved_quantity`。
-4. 建立 `PENDING_PAYMENT` 訂房與 `expiresAt`。
-5. 任一步驟失敗就 rollback。
+建立訂房必須支援 `Idempotency-Key`。相同 key 與相同 canonical payload 回傳原訂房；相同 key 與不同 payload 必須回傳穩定 conflict error，不得建立第二筆訂房。
 
-`room_inventory` 必須先建立好每個「房型 + 日期」的資料列，才能可靠地使用 row lock 防止併發超賣。
+Legacy fingerprint 規則見 [ADR 0002](adr/0002-idempotency-fingerprint-legacy.md)。目前 client 額外傳送 `X-Request-Fingerprint`；是否移除這個重複契約列入 P2，server 無論如何都必須根據 validated body 計算 canonical fingerprint。
 
-同一個訂房請求應支援 `Idempotency-Key`，避免使用者重複點擊造成重複訂單。
+### 3.6 Availability aggregation
 
-## 初步資料表
+成功但 `available: false` 的房型仍是完整搜尋結果的一部分。只要任一房型 request reject，整次搜尋失敗，不顯示 partial room list，並提供 retry。詳細規則見 [ADR 0003](adr/0003-availability-search-failure-policy.md)。
 
-```text
-properties
-room_types
-rooms
-room_inventory
-users
-guests
-reservations
-reservation_items
-payments
-```
+### 3.7 Reservation snapshot 與價格
 
-`reservations` MVP 重要欄位：
+`ReservationItem` 保存 room-type name、rate-plan name、nightly price、taxes、discounts 與 quantity snapshot；reservation 保存 subtotal、taxes、discounts 與 total summary。
+
+目前 MVP 實作是整段住宿使用相同 `nightly_price`，taxes 與 discounts 為 0。Seasonal／逐晚價格不在目前已完成範圍；若要加入，必須先決定 JSONB breakdown 或 reservation-item-night model，再更新本節與 ADR。
+
+## 4. 程式邊界與 API 慣例
+
+### 4.1 模組責任
 
 ```text
-id
-user_id
-status
-check_in_date
-check_out_date
-guest_count
-total_amount
-cancellable_until
-expires_at
-created_at
-updated_at
+Page / Component
+  → Pinia Store
+  → Feature API module
+  → Nuxt $fetch
+  → Nitro API route
+  → Service
+  → Repository
+  → PostgreSQL
 ```
 
-`room_inventory` MVP 重要欄位：
+- Page／component 不處理 HTTP 細節。
+- Store 協調 UI state 與 feature workflow。
+- Feature API module 負責 URL、headers 與 response decoding。
+- API route 只翻譯 HTTP input／output。
+- Business rules 與 transaction 放在 `server/services`。
+- Database queries 放在 `server/repositories`。
+- Shared schemas 與 types 放在 `shared/`。
 
-```text
-room_type_id
-stay_date
-total_quantity
-reserved_quantity
-blocked_quantity
-```
-
-建議對以下欄位建立唯一限制：
-
-```text
-(room_type_id, stay_date)
-```
-
-## API 方向
-
-### 公開功能
-
-```text
-GET  /api/properties
-GET  /api/properties/:propertyId/availability
-GET  /api/room-types/:roomTypeId
-POST /api/reservations/holds
-POST /api/reservations/:id/payment
-GET  /api/reservations/:id
-POST /api/reservations/:id/cancel
-```
-
-### 使用者功能
-
-```text
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/logout
-GET  /api/me
-GET  /api/me/reservations
-```
-
-### 管理功能
-
-```text
-POST  /api/admin/room-types
-PATCH /api/admin/room-types/:id
-PATCH /api/admin/inventory
-GET   /api/admin/reservations
-```
-
-統一回應格式：
+### 4.2 Response shape
 
 ```ts
 type ApiResponse<T> =
@@ -207,78 +169,206 @@ type ApiResponse<T> =
     }
 ```
 
-## 建議目錄結構
+External input 使用 Zod。API error code 與 message 保持 language-neutral，不回傳 raw database errors；client 用 error code 查找 i18n message。
+
+### 4.3 目前 routes
 
 ```text
-app/
-├─ pages/
-├─ components/
-├─ composables/
-server/
-├─ api/
-├─ services/
-├─ repositories/
-└─ utils/
-shared/
-├─ types/
-└─ schemas/
-db/
+GET  /api/availability
+POST /api/reservations
+GET  /api/reservations/:reservationId
+POST /api/reservations/:reservationId/confirm
+POST /api/reservations/:reservationId/cancel
+POST /api/reservations/:reservationId/expire
+POST /api/internal/reservations/expire
 ```
 
-API route 只負責處理 HTTP 輸入與輸出；庫存計算、狀態轉換與訂房交易邏輯集中在 `server/services`，資料庫查詢集中在 `server/repositories`。
+Planned routes：
 
-建議先形成幾個小而清楚的模組介面：
-
-```ts
-createReservationHold(input)
-confirmReservation(input)
-cancelReservation(input)
-expireReservation(input)
+```text
+GET /api/property
+GET /api/room-types
 ```
 
-## MVP 保留項目
+在 Slice 3 完成前，首頁仍依賴固定 seed room-type UUID。沒有列在本節的 auth、payment、admin routes 不屬於目前 MVP 契約。
 
-以下項目是真正影響訂房正確性與資料一致性的核心，第一版保留：
+## 5. 目前完成基線
 
-- 半開日期區間 `[checkInDate, checkOutDate)`
-- `RoomType` 與 `Room` 分離
-- `room_inventory` 每日庫存
-- `available` 計算邏輯
-- `reservation_items` 訂單快照
-- 暫存訂房與 `expiresAt`
-- PostgreSQL transaction 與 row lock
-- 統一的 `ApiResponse<T>`
-- 簡化版 `ReservationStatus` 狀態機
+### 已完成
 
-## 刪除或延後項目
+- Nuxt 單一 application 與 i18n 基礎
+- PostgreSQL、Drizzle schema 與 migrations
+- `Property`／`RoomType`／`Room` 分離
+- 每日 `RoomInventory` 與唯一限制
+- 半開日期、晚數與 availability 計算
+- Server-side flat nightly price quote
+- 動態建立缺少的 inventory rows
+- Transactional `PENDING_PAYMENT` hold
+- Inventory row locks 與 rollback
+- Idempotency key、payload fingerprint 與 legacy migration policy
+- Confirm、cancel、single expiration 與 maintenance batch expiration
+- Cancellation／expiration exactly-once inventory release
+- Reservation 與 item snapshots、price summary、guest count、cancellable deadline
+- Reservation details API
+- 首頁搜尋、availability、hold、倒數、confirm、cancel、retry 與簡易 lookup UI
+- Error code 到 `zh-TW`／`en` i18n
 
-### 不在 MVP 實作
+### 目前驗證證據
 
-- pnpm workspace 與獨立 `packages/`：改為單一 Nuxt 專案。
-- Redis：先使用 PostgreSQL transaction 與 row lock；只有效能需求出現後再加入。
-- 多金流 `PaymentGateway` 抽象：先串接一個金流，甚至可以先用假付款流程。
-- 多幣別、多旅館：先固定單一住宿場所與單一幣別。
-- `audit_logs`：日後需要營運追蹤或合規時再加入。
-- `CancellationPolicy` 獨立資料表：先使用 `reservations.cancellable_until`。
-- 入住、退房、未入住狀態：MVP 先不處理現場營運流程。
-- 複雜優惠碼、報表、渠道同步：等核心訂房流程穩定後再評估。
+- 2026-08-05：Vitest 60 passed、10 skipped。
+- 被 skipped 的 10 個 tests 需要真實 `DATABASE_URL`，包含重要 PostgreSQL integration coverage，因此不算 release verification。
+- UI 局部 typecheck 已存在，但沒有覆蓋完整 pages、stores、server 與 tests。
+- 尚無 CI、完整 Playwright flow 與可重現的 production deployment verification。
 
-### 延後的判斷原則
+## 6. 未完成需求與執行順序
 
-只有在出現實際需求時才加入額外抽象：
+一次只執行一個 slice。每個 slice 必須有明確 public seam、focused tests、完成條件與主計劃更新；不要同時展開後續 slice。
 
-- 有第二個金流商，才抽出金流 Adapter。
-- 有快取或併發效能瓶頸，才加入 Redis。
-- 有第二個應用程式或需要獨立部署，才拆 workspace package。
-- 有多個住宿場所，才引入完整的 Property 管理模型。
+### Slice 0：文件與開發環境基線
 
-## MVP 開發順序
+優先級：P0；狀態：下一步。
 
-1. 建立 Nuxt、Nitro、TypeScript 與 PostgreSQL 基礎環境。
-2. 建立房型、房間與每日庫存資料表。
-3. 完成房型與可售庫存管理。
-4. 完成日期搜尋與價格計算。
-5. 完成暫存訂房、transaction、row lock 與逾時釋放。
-6. 完成假付款或單一金流流程。
-7. 完成訂房查詢與取消。
-8. 補上核心服務的單元測試與訂房流程的整合測試。
+- 對齊 README、Node.js 版本與唯一 package manager。
+- 增加 database setup 與 migration scripts。
+- 新增完整 `nuxt typecheck`，保留局部 typecheck 只作快速回饋。
+- 統一 local 與 CI 將使用的驗證指令。
+
+完成條件：新開發者可只依 README，從空環境建立資料庫、套用 migrations、啟動專案並執行完整驗證。
+
+### Slice 1：日期邊界與 request abuse 防護
+
+優先級：P0；狀態：未開始。
+
+- 決定並實作最大住宿晚數與 booking window。
+- Server 拒絕過去入住日期與過大日期範圍。
+- Availability 與 hold 共用相同日期政策。
+- 限制 request body、`Idempotency-Key` 與展開 inventory rows 的大小。
+- 對 availability、lookup 與 hold 加入 hosting／proxy rate limit。
+- 定義同一 IP／email 的短時間 hold 防濫用策略，不為此引入 Redis。
+
+完成條件：匿名 request 無法建立過去訂房、展開無界 inventory rows，或用大量 holds 長時間占滿庫存而完全無限制。
+
+### Slice 2：Guest reservation access
+
+優先級：P0；狀態：未開始；實作前先新增 ADR。
+
+- 建立高 entropy reservation access token。
+- API 只回傳一次明文 token，database 只保存 hash。
+- Lookup 與 cancel 同時驗證 reservation ID 與 token。
+- Confirm 視為付款／內部操作，不保留無保護的公開 mutation。
+- 建立訂房後提供可複製的安全詳情連結。
+- Token 不得出現在 server logs。
+- 測試 missing、invalid、wrong-reservation token 與 PII 不外洩。
+
+完成條件：只知道 reservation UUID 無法讀取 guest PII 或改變訂房狀態；沒有會員帳號的 guest 仍能安全保存並重新開啟訂房。
+
+### Slice 3：CI 與真實 PostgreSQL release gate
+
+優先級：P0；狀態：未開始。
+
+- CI 啟動與 production major version 相同的 PostgreSQL。
+- 從空資料庫套用全部 migrations。
+- 強制執行 concurrency、idempotency、expiration 與 migration tests，不得 skip。
+- 執行 format check、完整 typecheck、unit／integration tests 與 production build。
+- 必要 tests skipped 時讓 CI 失敗。
+
+完成條件：不超賣、idempotency、狀態轉換與 exactly-once inventory release 在真實 PostgreSQL CI 中持續通過。
+
+### Slice 4：動態 property 與 room-type catalog
+
+優先級：P1；狀態：未開始。
+
+- 增加 read-only property／room-type API。
+- 移除首頁硬編碼 room-type UUID。
+- 決定由單一 aggregated availability endpoint 或現有 client aggregation 提供完整結果。
+- 保留 ADR 0003 all-or-nothing failure policy。
+- 明確處理 Room 增減後既有 inventory `total_quantity` 的同步政策。
+
+完成條件：新增、移除或重新 seed room type 不需要修改首頁程式碼。
+
+### Slice 5：受保護的訂房詳情頁
+
+優先級：P1；狀態：未開始；依賴 Slice 2。
+
+- 新增獨立 route，以 reservation ID 與 access token 載入。
+- 顯示 guest、日期、晚數、room-type snapshot、rate-plan snapshot、quantity 與 TWD summary。
+- 覆蓋 loading、not-found、unauthorized、API error、expired 與 cancelled。
+- 補 page、store 與 API client tests。
+
+完成條件：重新載入或分享正確安全連結仍能取得訂房；錯誤與終止狀態完整呈現。
+
+### Slice 6：最低限度庫存營運
+
+優先級：P1；狀態：未開始；實作前記錄操作與授權邊界。
+
+- 提供查看指定日期 reserved／blocked／available 的方式。
+- 提供安全、可驗證的 block／unblock 操作。
+- 可以是受保護 internal API、簡單 admin page 或有 runbook 的 CLI；不必建立完整 admin platform。
+- 操作不得讓 quantity 為負或超過 total。
+
+完成條件：住宿方能在不直接手改資料表的情況下處理維修、停售與恢復庫存。
+
+### Slice 7：API、E2E 與營運驗證
+
+優先級：P1；狀態：未開始。
+
+- 補齊所有 public routes 的 HTTP status 與 `ApiResponse<T>` tests。
+- Playwright：搜尋 → hold → 安全詳情頁 → confirm／cancel。
+- 驗證 expiration scheduler、secret、retry 與 backlog。
+- 補 migration／deployment runbook、health checks 與 structured logging。
+- 監控 scheduler 最後成功時間、每次 expired 數量與 backlog。
+
+完成條件：核心流程能在接近 production 的環境自動驗證，部署後能察覺 database、migration 或 expiration scheduler 失效。
+
+### P2：完成公開 MVP 前評估
+
+- PostgreSQL check constraints：quantity 非負、reserved + blocked 不超過 total、guest count 與日期有效、金額 invariant 成立。
+- 決定移除或保留 client `X-Request-Fingerprint`，避免不必要的雙重 canonicalization 契約。
+- 若固定 nightly price 不再足夠，先設計逐晚價格 snapshot，再加入 seasonal pricing。
+
+## 7. MVP Definition of Done
+
+只有全部符合才標示為可公開部署的 MVP：
+
+- [ ] 未持有有效 access token 的使用者不能讀取或修改訂房。
+- [ ] Server 拒絕過去入住、無界住宿期間與超出 booking window 的 request。
+- [ ] Availability 與 hold 有合理 rate limit 與 hold abuse 防護。
+- [ ] 搜尋、hold、confirm、cancel、expire 的狀態與庫存結果正確。
+- [ ] 相同 idempotency key 不建立重複訂房，不同 payload 被拒絕。
+- [ ] Cancellation 與 expiration 只釋放一次庫存。
+- [ ] 房型 catalog 不依賴前端硬編碼 database UUID。
+- [ ] 住宿方有最低限度的 inventory block／unblock 操作方式。
+- [ ] 所有 migrations 可從空資料庫成功執行。
+- [ ] PostgreSQL concurrency 與 lifecycle tests 在 CI 實際執行且通過。
+- [ ] 完整 typecheck、format check、tests 與 production build 通過。
+- [ ] Playwright 核心訂房流程通過。
+- [ ] Expiration scheduler 已部署，並可觀察最後成功時間與 backlog。
+- [ ] README 可讓新開發者重現開發、database 與驗證環境。
+- [ ] 本文件的目前狀態、routes、驗證數字與實作一致。
+
+## 8. 驗證指令目標
+
+Slice 0 完成後，repository 應提供一致 scripts；目標 release verification 為：
+
+```bash
+npm ci
+npm run db:migrate
+npm run format:check
+npm run typecheck
+npm test
+npm run test:integration
+npm run test:e2e
+npm run build
+```
+
+在 CI 中，integration tests 缺少 `DATABASE_URL` 或被 skipped 必須視為設定錯誤，而不是成功。
+
+## 9. 進度更新規則
+
+每完成一個 slice：
+
+1. 將該 slice 狀態改為完成並附驗證證據。
+2. 將下一個 slice 標示為唯一下一步。
+3. 更新「目前完成基線」與 routes。
+4. 若改變重大決策，新增或取代 ADR。
+5. 不建立新的 status、review 或 roadmap 文件。

@@ -26,6 +26,8 @@ logs
 docs
 !docs/
 docs/*
+!docs/README.md
+!docs/booking-system-plan.md
 !docs/adr/
 !docs/adr/*.md
 !docs/maintenance-expiration.md
