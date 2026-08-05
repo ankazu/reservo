@@ -325,7 +325,10 @@ async function lookupReservation() {
           {{ t('rooms.description') }}
         </p>
       </div>
-      <div class="grid gap-[18px] md:grid-cols-3">
+      <div
+        v-if="!availabilityErrorMessage"
+        class="grid gap-[18px] md:grid-cols-3"
+      >
         <article
           v-for="room in rooms"
           :key="room.key"
