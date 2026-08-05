@@ -38,7 +38,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@nuxt/nitro-server": "^4.5.1",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@types/pg": "^8.20.4",
     "@vitejs/plugin-vue": "^6.0.8",
@@ -50,9 +49,5 @@
     "typescript": "^6.0.3",
     "vitest": "^3.2.4",
     "vue-tsc": "^3.3.9"
-  },
-  "optionalDependencies": {
-    "@oxc-parser/binding-linux-x64-gnu": "^0.141.0",
-    "@oxc-transform/binding-linux-x64-gnu": "^0.141.0"
   }
 }
