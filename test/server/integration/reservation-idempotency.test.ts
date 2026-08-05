@@ -7,7 +7,9 @@ import { createReservationHold } from '../../../server/services/reservation/crea
 import { db } from '../../../server/utils/db'
 
 const runIntegration = Boolean(process.env.DATABASE_URL)
-const describeIntegration = describe.skipIf(!runIntegration)
+const describeIntegration = process.env.REQUIRE_DATABASE
+  ? describe
+  : describe.skipIf(!runIntegration)
 
 describeIntegration('reservation idempotency PostgreSQL integration', () => {
   const database = db!

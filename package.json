@@ -18,7 +18,9 @@
     "preview": "nuxt preview",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
+    "test": "npm run test:unit",
+    "test:integration": "node scripts/run-integration-tests.mjs",
+    "test:unit": "vitest run test/app test/server/api test/server/services test/server/utils test/shared",
     "typecheck": "nuxt typecheck",
     "typecheck:ui": "vue-tsc --noEmit -p tsconfig.ui.json",
     "postinstall": "nuxt prepare"

@@ -5,8 +5,8 @@
 # Reservo 訂房系統 MVP 主計劃
 
 - 最後更新：2026-08-05
-- 目前階段：Guest reservation access 已完成，下一步建立 CI 與真實 PostgreSQL release gate
-- 唯一下一步：[Slice 3：CI 與真實 PostgreSQL release gate](#slice-3ci-與真實-postgresql-release-gate)
+- 目前階段：CI 與真實 PostgreSQL release gate 已完成，下一步建立動態 property 與 room-type catalog
+- 唯一下一步：[Slice 4：動態 property 與 room-type catalog](#slice-4動態-property-與-room-type-catalog)
 
 ## 1. 目標與範圍
 
@@ -220,10 +220,9 @@ GET /api/room-types
 
 ### 目前驗證證據
 
-- 2026-08-05：Vitest 85 passed、11 skipped。
-- 被 skipped 的 11 個 tests 需要真實 `DATABASE_URL`，包含重要 PostgreSQL integration coverage，因此不算 release verification。
-- UI 局部 typecheck 已存在，但沒有覆蓋完整 pages、stores、server 與 tests。
-- 尚無 CI、完整 Playwright flow 與可重現的 production deployment verification。
+- 2026-08-05：unit／component／route Vitest 85 passed、11 個 PostgreSQL integration tests 已由獨立 release gate 執行。
+- CI 使用 PostgreSQL 16 service，從空資料庫套用全部 migrations，並執行 format check、完整 typecheck、unit tests、integration tests 與 production build。
+- 完整 Nuxt typecheck 已在 CI release gate 執行；Playwright flow 與可重現的 production deployment verification 尚未完成。
 
 ## 6. 未完成需求與執行順序
 
@@ -292,7 +291,7 @@ GET /api/room-types
 
 ### Slice 3：CI 與真實 PostgreSQL release gate
 
-優先級：P0；狀態：下一步。
+優先級：P0；狀態：✅ 完成（2026-08-05）。
 
 - CI 啟動與 production major version 相同的 PostgreSQL。
 - 從空資料庫套用全部 migrations。
@@ -302,9 +301,15 @@ GET /api/room-types
 
 完成條件：不超賣、idempotency、狀態轉換與 exactly-once inventory release 在真實 PostgreSQL CI 中持續通過。
 
+驗證證據：
+
+- `.github/workflows/ci.yml` 啟動 PostgreSQL 16，設定 health check，並以空資料庫套用 migrations。
+- `npm test` 只執行不依賴資料庫的 tests；`npm run test:integration` 缺少 `DATABASE_URL` 會直接失敗，且先執行 `db:migrate`，不允許 integration suites 以 skipped 通過。
+- CI 依序執行 `db:check`、migration、format check、完整 typecheck、unit tests、PostgreSQL integration tests 與 production build。
+
 ### Slice 4：動態 property 與 room-type catalog
 
-優先級：P1；狀態：未開始。
+優先級：P1；狀態：下一步。
 
 - 增加 read-only property／room-type API。
 - 移除首頁硬編碼 room-type UUID。

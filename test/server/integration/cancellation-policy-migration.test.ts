@@ -7,7 +7,9 @@ import * as schema from '../../../db/schema'
 import { db } from '../../../server/utils/db'
 
 const runIntegration = Boolean(process.env.DATABASE_URL)
-const describeIntegration = describe.skipIf(!runIntegration)
+const describeIntegration = process.env.REQUIRE_DATABASE
+  ? describe
+  : describe.skipIf(!runIntegration)
 
 describeIntegration('cancellation policy corrective migration', () => {
   const database = db!

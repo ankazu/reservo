@@ -87,12 +87,22 @@ npm run db:check
 
 ## 驗證
 
-日常快速回饋：
+日常快速回饋（不需要 PostgreSQL）：
 
 ```bash
 npm run typecheck:ui
 npm test
 ```
+
+若要執行 PostgreSQL integration tests，必須先設定可連線的 `DATABASE_URL`：
+
+```bash
+npm run test:integration
+```
+
+這個指令會先套用 migrations，再執行 concurrency、idempotency、expiration
+與 migration suites。缺少 `DATABASE_URL` 時會直接失敗；integration suites
+不允許在 release gate 中以 skipped 通過。
 
 提交前完整驗證：
 
@@ -107,9 +117,7 @@ npm run check
 3. `npm test`
 4. `npm run build`
 
-其中 `npm run typecheck` 使用 Nuxt 的完整 typecheck，涵蓋 application 與 server code；`typecheck:ui` 只是較快的局部檢查，不能取代完整驗證。
-
-目前 PostgreSQL integration tests 在沒有 `DATABASE_URL` 時會顯示 skipped。公開部署前的 CI release gate 必須提供真實 PostgreSQL，並將必要 integration tests skipped 視為失敗；這項工作列在主計劃 Slice 3。
+其中 `npm run typecheck` 使用 Nuxt 的完整 typecheck，涵蓋 application 與 server code；`typecheck:ui` 只是較快的局部檢查，不能取代完整驗證。`npm test` 只執行 unit、component 與 route tests；需要真實 PostgreSQL 的測試由 `npm run test:integration` 明確執行。
 
 ## 公開 request 防護
 
@@ -133,20 +141,21 @@ Token 不得放在 query string 或 logs。若 production proxy 重寫 request l
 
 ## 常用指令
 
-| 指令                   | 用途                                  |
-| ---------------------- | ------------------------------------- |
-| `npm run dev`          | 啟動 Nuxt development server          |
-| `npm run build`        | 建立 production build                 |
-| `npm run preview`      | 預覽 production build                 |
-| `npm run db:generate`  | 根據 Drizzle schema 產生 migration    |
-| `npm run db:check`     | 檢查 Drizzle migration metadata       |
-| `npm run db:migrate`   | 對 `DATABASE_URL` 套用 migrations     |
-| `npm run format`       | 使用 Prettier 格式化 repository       |
-| `npm run format:check` | 檢查格式，不修改檔案                  |
-| `npm run typecheck:ui` | 快速檢查 UI component 與 shared types |
-| `npm run typecheck`    | 完整 Nuxt typecheck                   |
-| `npm test`             | 執行 Vitest suite                     |
-| `npm run check`        | 執行提交前完整驗證                    |
+| 指令                       | 用途                                                |
+| -------------------------- | --------------------------------------------------- |
+| `npm run dev`              | 啟動 Nuxt development server                        |
+| `npm run build`            | 建立 production build                               |
+| `npm run preview`          | 預覽 production build                               |
+| `npm run db:generate`      | 根據 Drizzle schema 產生 migration                  |
+| `npm run db:check`         | 檢查 Drizzle migration metadata                     |
+| `npm run db:migrate`       | 對 `DATABASE_URL` 套用 migrations                   |
+| `npm run format`           | 使用 Prettier 格式化 repository                     |
+| `npm run format:check`     | 檢查格式，不修改檔案                                |
+| `npm run typecheck:ui`     | 快速檢查 UI component 與 shared types               |
+| `npm run typecheck`        | 完整 Nuxt typecheck                                 |
+| `npm test`                 | 執行不依賴資料庫的 Vitest suite                     |
+| `npm run test:integration` | 套用 migrations 並執行 PostgreSQL integration tests |
+| `npm run check`            | 執行提交前完整驗證                                  |
 
 ## Repository structure
 
