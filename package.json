@@ -38,6 +38,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@nuxt/nitro-server": "^4.5.1",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@types/pg": "^8.20.4",
     "@vitejs/plugin-vue": "^6.0.8",
