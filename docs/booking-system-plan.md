@@ -5,8 +5,8 @@
 # Reservo 訂房系統 MVP 主計劃
 
 - 最後更新：2026-08-05
-- 目前階段：核心訂房流程已完成，正在補齊公開部署所需的安全、驗證與營運基線
-- 唯一下一步：[Slice 0：文件與開發環境基線](#slice-0文件與開發環境基線)
+- 目前階段：開發環境基線已完成，正在補齊公開 request 的日期邊界與濫用防護
+- 唯一下一步：[Slice 1：日期邊界與 request abuse 防護](#slice-1日期邊界與-request-abuse-防護)
 
 ## 1. 目標與範圍
 
@@ -226,7 +226,7 @@ GET /api/room-types
 
 ### Slice 0：文件與開發環境基線
 
-優先級：P0；狀態：下一步。
+優先級：P0；狀態：✅ 完成（2026-08-05）。
 
 - 對齊 README、Node.js 版本與唯一 package manager。
 - 增加 database setup 與 migration scripts。
@@ -235,9 +235,16 @@ GET /api/room-types
 
 完成條件：新開發者可只依 README，從空環境建立資料庫、套用 migrations、啟動專案並執行完整驗證。
 
+驗證證據：
+
+- `.nvmrc` 固定 Node.js 22.22.0，npm 固定為 10.9.x，且不符合 engines 時拒絕安裝。
+- README 已記錄 npm-only setup、PostgreSQL database、Drizzle migration workflow 與統一驗證方式。
+- `db:generate`、`db:check`、`db:migrate`、完整 `typecheck` 與 `check` scripts 已建立。
+- 完整 Nuxt typecheck 已涵蓋並修正先前未檢查的 pages、API client、server routes 與 Drizzle transaction types。
+
 ### Slice 1：日期邊界與 request abuse 防護
 
-優先級：P0；狀態：未開始。
+優先級：P0；狀態：下一步。
 
 - 決定並實作最大住宿晚數與 booking window。
 - Server 拒絕過去入住日期與過大日期範圍。

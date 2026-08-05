@@ -14,6 +14,12 @@ export interface ApiClient {
   post<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>
 }
 
+type FetchRequestOptions = RequestOptions & { baseURL?: string }
+type FetchRequest = <T>(
+  path: string,
+  options: FetchRequestOptions,
+) => Promise<T>
+
 type FetchError = {
   status?: number
   statusCode?: number
@@ -59,8 +65,20 @@ function logDevelopment(event: {
   if (import.meta.dev) console.debug('[api]', event)
 }
 
+async function fetchRequest<T>(
+  path: string,
+  options: FetchRequestOptions,
+): Promise<T> {
+  const { body, ...fetchOptions } = options
+  const response: unknown = await $fetch(path, {
+    ...fetchOptions,
+    body: body as Record<string, unknown> | undefined,
+  })
+  return response as T
+}
+
 export function createFetchApiClient(
-  request: typeof $fetch = $fetch,
+  request: FetchRequest = fetchRequest,
   config: { baseURL?: string; defaultTimeout?: number } = {},
 ): ApiClient {
   async function send<T>(path: string, options: RequestOptions = {}) {
@@ -103,7 +121,10 @@ export function createFetchApiClient(
 
 export function useApiClient(): ApiClient {
   const runtimeConfig = useRuntimeConfig()
-  return createFetchApiClient($fetch, {
-    baseURL: runtimeConfig.public.apiBaseUrl || undefined,
+  return createFetchApiClient(fetchRequest, {
+    baseURL:
+      typeof runtimeConfig.public.apiBaseUrl === 'string'
+        ? runtimeConfig.public.apiBaseUrl
+        : undefined,
   })
 }

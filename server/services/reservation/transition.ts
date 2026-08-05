@@ -5,9 +5,9 @@ import {
   lockInventoryForStay,
   lockReservation,
   releaseInventory,
-  Transaction,
   updateReservationStatus,
 } from '../../repositories/reservation'
+import type { Transaction } from '../../repositories/reservation'
 import { canCancelReservation, canTransitionReservation } from './rules'
 import { getNightCount } from '../../../shared/types/reservation'
 import type { db } from '../../utils/db'

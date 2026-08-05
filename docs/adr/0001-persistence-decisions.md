@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-08-02
+- Amended: 2026-08-05（更正 Drizzle schema 的實際單檔路徑）
 
 ## Context
 
@@ -15,7 +16,7 @@ the API and services easy to test.
 ### ORM and migration workflow
 
 Use Drizzle ORM with PostgreSQL and Drizzle Kit migrations. Drizzle schema
-definitions live under `db/schema`, migrations live under `db/migrations`, and
+definitions live in `db/schema.ts`, migrations live under `db/migrations`, and
 repositories are the only application layer allowed to import the database
 client or Drizzle query helpers.
 

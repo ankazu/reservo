@@ -1,4 +1,4 @@
-import type { ApiClient } from '../api/client'
+import type { ApiClient, RequestOptions } from '../api/client'
 import { API_ENDPOINTS } from '~~/shared/constants/api'
 import type { ReservationSearchInput } from '~~/shared/types/availability'
 import type { ReservationStatus } from '~~/shared/types/reservation'
@@ -19,7 +19,7 @@ export function createMockApiClient(
   const reservations = createReservationsMock(scenario)
 
   return {
-    async get<T>(path, options) {
+    async get<T>(path: string, options?: RequestOptions) {
       if (path !== API_ENDPOINTS.availability) {
         throw new Error(`Unknown mock GET endpoint: ${path}`)
       }
@@ -27,7 +27,7 @@ export function createMockApiClient(
         options?.query as unknown as ReservationSearchInput,
       ) as Promise<T>
     },
-    async post<T>(path, body, options) {
+    async post<T>(path: string, body: unknown, options?: RequestOptions) {
       if (path === API_ENDPOINTS.reservations) {
         return reservations.createHold(
           body as Parameters<typeof reservations.createHold>[0],

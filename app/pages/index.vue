@@ -355,7 +355,7 @@ async function lookupReservation() {
               >
                 {{
                   reservationStore.availabilityByRoomTypeId[room.roomTypeId]
-                    .available
+                    ?.available
                     ? t('rooms.available')
                     : t('rooms.unavailable')
                 }}
@@ -373,7 +373,7 @@ async function lookupReservation() {
                   t('rooms.pricePerNight', {
                     price: formatCurrency(
                       reservationStore.availabilityByRoomTypeId[room.roomTypeId]
-                        .price.nightlyPrice,
+                        ?.price.nightlyPrice ?? 0,
                     ),
                   })
                 }}
@@ -383,7 +383,7 @@ async function lookupReservation() {
                   t('rooms.stayTotal', {
                     price: formatCurrency(
                       reservationStore.availabilityByRoomTypeId[room.roomTypeId]
-                        .price.total,
+                        ?.price.total ?? 0,
                     ),
                   })
                 }}
@@ -444,8 +444,8 @@ async function lookupReservation() {
           {{
             t('rooms.stayTotal', {
               price: formatCurrency(
-                reservationStore.availabilityByRoomTypeId[selectedRoomId].price
-                  .total,
+                reservationStore.availabilityByRoomTypeId[selectedRoomId]?.price
+                  .total ?? 0,
               ),
             })
           }}

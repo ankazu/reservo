@@ -10,8 +10,10 @@ import { db } from '../../../utils/db'
 
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
-    const reservationId = getRouterParam(event, 'reservationId')
-    if (!reservationIdSchema.safeParse(reservationId).success) {
+    const parsedReservationId = reservationIdSchema.safeParse(
+      getRouterParam(event, 'reservationId'),
+    )
+    if (!parsedReservationId.success) {
       setResponseStatus(event, 400)
       return {
         success: false,
@@ -21,6 +23,7 @@ export default defineEventHandler(
         },
       }
     }
+    const reservationId = parsedReservationId.data
     if (!db) {
       setResponseStatus(event, 503)
       return {

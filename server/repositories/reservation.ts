@@ -1,9 +1,13 @@
 import { and, eq, gte, lt, lte, sql } from 'drizzle-orm'
+import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { NodePgTransaction } from 'drizzle-orm/node-postgres'
 
 import * as schema from '../../db/schema'
 
-export type Transaction = NodePgTransaction<typeof schema, typeof schema>
+export type Transaction = NodePgTransaction<
+  typeof schema,
+  ExtractTablesWithRelations<typeof schema>
+>
 
 export async function findReservationByIdempotencyKey(
   tx: Transaction,
@@ -233,7 +237,9 @@ export async function createReservation(
   values: typeof schema.reservations.$inferInsert,
 ) {
   const rows = await tx.insert(schema.reservations).values(values).returning()
-  return rows[0]
+  const reservation = rows[0]
+  if (!reservation) throw new Error('RESERVATION_CREATE_FAILED')
+  return reservation
 }
 
 export async function createReservationItem(
