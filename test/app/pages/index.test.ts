@@ -40,14 +40,15 @@ function createReservationStore() {
     availabilityErrorDetails: null,
     isAvailabilityLoading: false,
     isLoading: false,
+    isLookupLoading: false,
     currentReservation: null,
+    reservationDetails: null,
+    reservationAccessUrl: null,
     clearReservation: vi.fn(),
     clearAvailability: vi.fn(),
     cancelAvailability: vi.fn(),
     createHold: vi.fn(),
-    confirmReservation: vi.fn(),
     cancelReservation: vi.fn(),
-    expireReservation: vi.fn(),
     getReservation: vi.fn(),
     searchAvailabilityForRooms: vi.fn(async () => {
       reservationStore.availabilityErrorCode = 'AVAILABILITY_FAILED'
@@ -97,5 +98,34 @@ describe('availability results', () => {
 
     expect(reservationStore.availabilityErrorCode).toBe('AVAILABILITY_FAILED')
     expect(wrapper.findAll('#rooms article')).toHaveLength(0)
+  })
+
+  it('copies the secure reservation URL explicitly', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    reservationStore.currentReservation = {
+      id: 'reservation-1',
+      status: 'PENDING_PAYMENT',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    }
+    reservationStore.reservationAccessUrl =
+      '/#reservationId=reservation-1&accessToken=secret-token'
+    const wrapper = mount(IndexPage, {
+      global: {
+        components: {
+          AvailabilitySearch: { template: '<div />' },
+        },
+      },
+    })
+
+    await wrapper.get('[data-test="copy-access-link"]').trigger('click')
+    await flushPromises()
+
+    expect(writeText).toHaveBeenCalledWith(
+      'http://localhost:3000/#reservationId=reservation-1&accessToken=secret-token',
+    )
   })
 })

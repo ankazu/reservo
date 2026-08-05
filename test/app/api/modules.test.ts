@@ -96,12 +96,14 @@ describe('reservation API module', () => {
       data: { id: 'reservation-1', items: [] },
     })
 
-    await createReservationsApi(client).getReservation('reservation-1')
-
-    expect(client.get).toHaveBeenCalledWith(
-      '/api/reservations/reservation-1',
-      undefined,
+    await createReservationsApi(client).getReservation(
+      'reservation-1',
+      'access-token',
     )
+
+    expect(client.get).toHaveBeenCalledWith('/api/reservations/reservation-1', {
+      headers: { Authorization: 'Bearer access-token' },
+    })
   })
 
   it('sends the idempotency key and forwards abort signals', async () => {
@@ -145,16 +147,23 @@ describe('reservation API module', () => {
     })
   })
 
-  it('keeps error codes stable for failed transitions', async () => {
+  it('sends access credentials and keeps cancellation errors stable', async () => {
     const client = createFakeClient()
     client.post.mockResolvedValue({
       success: false,
       error: { code: 'RESERVATION_EXPIRED', message: 'server fallback' },
     })
 
-    const error =
-      createReservationsApi(client).confirmReservation('reservation-1')
+    const error = createReservationsApi(client).cancelReservation(
+      'reservation-1',
+      'access-token',
+    )
     await expect(error).rejects.toBeInstanceOf(AppError)
     await expect(error).rejects.toMatchObject({ code: 'RESERVATION_EXPIRED' })
+    expect(client.post).toHaveBeenCalledWith(
+      '/api/reservations/reservation-1/cancel',
+      {},
+      { headers: { Authorization: 'Bearer access-token' } },
+    )
   })
 })

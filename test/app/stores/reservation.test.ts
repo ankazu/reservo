@@ -48,9 +48,7 @@ function createApi() {
     reservations: {
       getReservation: vi.fn(),
       createReservationHold: vi.fn(),
-      confirmReservation: vi.fn(),
       cancelReservation: vi.fn(),
-      expireReservation: vi.fn(),
     },
   } as unknown as Parameters<typeof createReservationStore>[0]
 }
@@ -236,29 +234,6 @@ describe('reservation store idempotency', () => {
 })
 
 describe('reservation store transitions', () => {
-  it('updates the current reservation after confirming a hold', async () => {
-    const api = createApi()
-    api.reservations.confirmReservation.mockResolvedValue({
-      id: 'reservation-1',
-      propertyId: holdInput.propertyId,
-      status: 'CONFIRMED',
-      guestName: holdInput.guestName,
-      guestEmail: holdInput.guestEmail,
-      checkInDate: holdInput.checkInDate,
-      checkOutDate: holdInput.checkOutDate,
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
-    })
-    const store = createReservationStore(api)
-
-    const result = await store.confirmReservation('reservation-1')
-
-    expect(api.reservations.confirmReservation).toHaveBeenCalledWith(
-      'reservation-1',
-    )
-    expect(result?.status).toBe('CONFIRMED')
-    expect(store.currentReservation.value?.status).toBe('CONFIRMED')
-  })
-
   it('updates the current reservation after cancelling a hold', async () => {
     const api = createApi()
     api.reservations.cancelReservation.mockResolvedValue({
@@ -273,13 +248,37 @@ describe('reservation store transitions', () => {
     })
     const store = createReservationStore(api)
 
-    const result = await store.cancelReservation('reservation-1')
+    const result = await store.cancelReservation('reservation-1', 'token-1')
 
     expect(api.reservations.cancelReservation).toHaveBeenCalledWith(
       'reservation-1',
+      'token-1',
     )
     expect(result?.status).toBe('CANCELLED')
     expect(store.currentReservation.value?.status).toBe('CANCELLED')
+  })
+
+  it('updates reopened details after token-authorized cancellation', async () => {
+    const api = createApi()
+    api.reservations.cancelReservation.mockResolvedValue({
+      id: 'reservation-1',
+      propertyId: holdInput.propertyId,
+      status: 'CANCELLED',
+    })
+    const store = createReservationStore(api)
+    store.reservationDetails.value = {
+      id: 'reservation-1',
+      status: 'PENDING_PAYMENT',
+      items: [],
+    } as unknown as ReservationDetails
+
+    await store.cancelReservation('reservation-1', 'saved-token')
+
+    expect(api.reservations.cancelReservation).toHaveBeenCalledWith(
+      'reservation-1',
+      'saved-token',
+    )
+    expect(store.reservationDetails.value?.status).toBe('CANCELLED')
   })
 
   it('keeps the hold visible and exposes an error when cancellation fails', async () => {
@@ -297,7 +296,9 @@ describe('reservation store transitions', () => {
       checkInDate: holdInput.checkInDate,
       checkOutDate: holdInput.checkOutDate,
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      accessToken: 'token-1',
     }
+    store.reservationAccessToken.value = 'token-1'
 
     const result = await store.cancelReservation('reservation-1')
 
@@ -318,9 +319,14 @@ describe('reservation store lookup', () => {
     api.reservations.getReservation.mockResolvedValue(details)
     const store = createReservationStore(api)
 
-    await expect(store.getReservation(details.id)).resolves.toEqual(details)
+    await expect(store.getReservation(details.id, 'token-1')).resolves.toEqual(
+      details,
+    )
 
-    expect(api.reservations.getReservation).toHaveBeenCalledWith(details.id)
+    expect(api.reservations.getReservation).toHaveBeenCalledWith(
+      details.id,
+      'token-1',
+    )
     expect(store.reservationDetails.value).toEqual(details)
   })
 
@@ -335,7 +341,9 @@ describe('reservation store lookup', () => {
       items: [],
     } as unknown as ReservationDetails
 
-    await expect(store.getReservation('missing')).resolves.toBeNull()
+    await expect(
+      store.getReservation('missing', 'wrong-token'),
+    ).resolves.toBeNull()
 
     expect(store.reservationDetails.value).toBeNull()
     expect(store.lookupErrorCode.value).toBe('RESERVATION_NOT_FOUND')

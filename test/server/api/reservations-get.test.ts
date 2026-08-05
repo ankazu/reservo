@@ -13,6 +13,7 @@ vi.mock('h3', () => ({
   getRouterParam: (event: { params?: Record<string, string> }) =>
     event.params?.reservationId,
   getRequestIP: () => '203.0.113.20',
+  getHeader: (event: Event, name: string) => event.headers?.[name],
   setResponseHeader: () => undefined,
   setResponseStatus: (event: { status?: number }, status: number) => {
     event.status = status
@@ -28,8 +29,20 @@ vi.mock('../../../server/utils/db', () => state)
 
 import handler from '../../../server/api/reservations/[reservationId].get'
 
-type Event = { params?: Record<string, string>; status?: number }
+type Event = {
+  params?: Record<string, string>
+  headers?: Record<string, string>
+  status?: number
+}
 const validId = '00000000-0000-4000-8000-000000000001'
+const accessToken = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+
+function authorizedEvent(params = { reservationId: validId }): Event {
+  return {
+    params,
+    headers: { authorization: `Bearer ${accessToken}` },
+  }
+}
 
 describe('GET /api/reservations/:reservationId', () => {
   beforeEach(() => {
@@ -38,7 +51,7 @@ describe('GET /api/reservations/:reservationId', () => {
   })
 
   it('returns 400 for an invalid reservation id', async () => {
-    const event: Event = { params: { reservationId: 'not-a-uuid' } }
+    const event = authorizedEvent({ reservationId: 'not-a-uuid' })
 
     await expect(handler(event as never)).resolves.toEqual({
       success: false,
@@ -52,7 +65,7 @@ describe('GET /api/reservations/:reservationId', () => {
 
   it('returns 503 when the database is unavailable', async () => {
     state.db = undefined
-    const event: Event = { params: { reservationId: validId } }
+    const event = authorizedEvent()
 
     await expect(handler(event as never)).resolves.toMatchObject({
       success: false,
@@ -64,21 +77,21 @@ describe('GET /api/reservations/:reservationId', () => {
   it('returns 200 with the reservation details', async () => {
     const data = { id: validId, items: [] }
     state.getReservation.mockResolvedValue(data)
-    const event: Event = { params: { reservationId: validId } }
+    const event = authorizedEvent()
 
     await expect(handler(event as never)).resolves.toEqual({
       success: true,
       data,
     })
     expect(event.status).toBeUndefined()
-    expect(state.getReservation).toHaveBeenCalledWith({}, validId)
+    expect(state.getReservation).toHaveBeenCalledWith({}, validId, accessToken)
   })
 
   it('returns 404 when the reservation does not exist', async () => {
     state.getReservation.mockRejectedValue(
       new state.ReservationLookupError('RESERVATION_NOT_FOUND'),
     )
-    const event: Event = { params: { reservationId: validId } }
+    const event = authorizedEvent()
 
     await expect(handler(event as never)).resolves.toMatchObject({
       success: false,
@@ -89,7 +102,7 @@ describe('GET /api/reservations/:reservationId', () => {
 
   it('returns 500 for an unknown service error', async () => {
     state.getReservation.mockRejectedValue(new Error('database failure'))
-    const event: Event = { params: { reservationId: validId } }
+    const event = authorizedEvent()
 
     await expect(handler(event as never)).resolves.toMatchObject({
       success: false,
@@ -97,4 +110,27 @@ describe('GET /api/reservations/:reservationId', () => {
     })
     expect(event.status).toBe(500)
   })
+
+  it.each([
+    ['missing', undefined],
+    ['malformed', 'Basic credential'],
+  ])(
+    'returns the same not-found response for %s credentials',
+    async (_case, authorization) => {
+      const event: Event = {
+        params: { reservationId: validId },
+        headers: authorization ? { authorization } : undefined,
+      }
+
+      await expect(handler(event as never)).resolves.toEqual({
+        success: false,
+        error: {
+          code: 'RESERVATION_NOT_FOUND',
+          message: 'RESERVATION_NOT_FOUND',
+        },
+      })
+      expect(event.status).toBe(404)
+      expect(state.getReservation).not.toHaveBeenCalled()
+    },
+  )
 })

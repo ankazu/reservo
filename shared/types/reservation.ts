@@ -27,6 +27,11 @@ export type Reservation = Omit<ReservationHold, 'status'> & {
   status: ReservationStatus
 }
 
+export type ReservationCreationResponse = Reservation & {
+  accessToken?: string
+  accessUrl?: string
+}
+
 export type ReservationItemSnapshot = {
   id: string
   reservationId: string

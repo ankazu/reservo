@@ -18,7 +18,12 @@ import {
   reserveInventory,
 } from '../../repositories/reservation'
 import { getAvailableQuantity } from './rules'
+import { toReservationResponse } from './response'
 import type { db } from '../../utils/db'
+import {
+  createReservationAccessToken,
+  hashReservationAccessToken,
+} from '../../utils/reservation-access'
 
 type Database = NonNullable<typeof db>
 
@@ -55,7 +60,7 @@ export async function createReservationHold(
           existing.requestFingerprint,
           requestFingerprint,
         )
-        return existing
+        return toReservationResponse(existing)
       }
 
       const roomType = await findRoomType(tx, input.roomTypeId)
@@ -98,7 +103,7 @@ export async function createReservationHold(
           existingAfterInventoryLock.requestFingerprint,
           requestFingerprint,
         )
-        return existingAfterInventoryLock
+        return toReservationResponse(existingAfterInventoryLock)
       }
 
       if (inventory.length !== nights) {
@@ -121,6 +126,7 @@ export async function createReservationHold(
         await reserveInventory(tx, row.id, input.quantity)
       }
 
+      const accessToken = createReservationAccessToken()
       const reservation = await createReservation(tx, {
         propertyId: input.propertyId,
         guestName: input.guestName,
@@ -136,6 +142,7 @@ export async function createReservationHold(
         expiresAt: new Date(Date.now() + HOLD_DURATION_MS),
         idempotencyKey,
         requestFingerprint,
+        accessTokenHash: hashReservationAccessToken(accessToken),
       })
 
       await createReservationItem(tx, {
@@ -149,7 +156,11 @@ export async function createReservationHold(
         quantity: input.quantity,
       })
 
-      return reservation
+      return {
+        ...toReservationResponse(reservation),
+        accessToken,
+        accessUrl: `/#reservationId=${reservation.id}&accessToken=${accessToken}`,
+      }
     })
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -161,7 +172,7 @@ export async function createReservationHold(
           existing.requestFingerprint,
           requestFingerprint,
         )
-        return existing
+        return toReservationResponse(existing)
       }
     }
     throw error

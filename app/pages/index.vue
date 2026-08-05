@@ -18,12 +18,13 @@ const guestName = ref('')
 const guestEmail = ref('')
 const reservationFormError = ref('')
 const reservationLookupId = ref('')
+const reservationLookupToken = ref('')
 const reservationLookupError = ref('')
+const accessLinkCopied = ref(false)
 const reservationStore = useReservationStore()
 const propertyId = '00000000-0000-4000-8000-000000000001'
 const now = ref(Date.now())
 let expiryTimer: ReturnType<typeof setInterval> | undefined
-let expirationRequestId: string | null = null
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat(locale.value === 'zh-TW' ? 'zh-TW' : 'en-US', {
@@ -59,30 +60,13 @@ const reservationTimeRemaining = computed(() => {
   return `${minutes}:${remainingSeconds}`
 })
 
-async function expireHold() {
-  const reservation = reservationStore.currentReservation
-  if (
-    reservationSecondsRemaining.value !== 0 ||
-    !reservation ||
-    reservation.status !== 'PENDING_PAYMENT' ||
-    expirationRequestId === reservation.id ||
-    reservationStore.isLoading
-  ) {
-    return
-  }
-
-  expirationRequestId = reservation.id
-  const result = await reservationStore.expireReservation(reservation.id)
-  if (!result) expirationRequestId = null
-}
-
-watch(
-  () =>
-    [reservationSecondsRemaining.value, reservationStore.isLoading] as const,
-  ([seconds]) => {
-    if (seconds === 0) void expireHold()
-  },
-)
+const secureReservationUrl = computed(() => {
+  const path = reservationStore.reservationAccessUrl
+  if (!path) return ''
+  return typeof window !== 'undefined'
+    ? new URL(path, window.location.origin).toString()
+    : path
+})
 
 const rooms = [
   {
@@ -165,6 +149,14 @@ onMounted(() => {
   expiryTimer = setInterval(() => {
     now.value = Date.now()
   }, 1000)
+  const fragment = new URLSearchParams(window.location.hash.slice(1))
+  const linkedReservationId = fragment.get('reservationId')
+  const linkedAccessToken = fragment.get('accessToken')
+  if (linkedReservationId && linkedAccessToken) {
+    reservationLookupId.value = linkedReservationId
+    reservationLookupToken.value = linkedAccessToken
+    void lookupReservation()
+  }
 })
 onBeforeUnmount(() => {
   if (expiryTimer) clearInterval(expiryTimer)
@@ -190,31 +182,39 @@ async function createHold() {
   })
 }
 
-async function confirmHold() {
-  const reservation = reservationStore.currentReservation
-  if (!reservation || reservation.status !== 'PENDING_PAYMENT') return
-  await reservationStore.confirmReservation(reservation.id)
-}
-
 async function cancelHold() {
   const reservation = reservationStore.currentReservation
   if (!reservation) return
   await reservationStore.cancelReservation(reservation.id)
 }
 
-async function retryExpiration() {
-  expirationRequestId = null
-  await expireHold()
+async function cancelLookedUpReservation() {
+  const reservation = reservationStore.reservationDetails
+  if (!reservation || !reservationLookupToken.value) return
+  await reservationStore.cancelReservation(
+    reservation.id,
+    reservationLookupToken.value,
+  )
+}
+
+async function copyAccessLink() {
+  if (!secureReservationUrl.value) return
+  await navigator.clipboard.writeText(secureReservationUrl.value)
+  accessLinkCopied.value = true
 }
 
 async function lookupReservation() {
   reservationLookupError.value = ''
-  if (!reservationLookupId.value.trim()) {
+  if (
+    !reservationLookupId.value.trim() ||
+    !reservationLookupToken.value.trim()
+  ) {
     reservationLookupError.value = t('reservation.lookup.errors.required')
     return
   }
   const result = await reservationStore.getReservation(
     reservationLookupId.value.trim(),
+    reservationLookupToken.value.trim(),
   )
   if (!result) {
     reservationLookupError.value = t(
@@ -522,6 +522,29 @@ async function lookupReservation() {
               }}
             </span>
           </p>
+          <div
+            v-if="reservationStore.reservationAccessUrl"
+            class="mt-2 flex flex-col gap-2 text-xs"
+          >
+            <input
+              :value="secureReservationUrl"
+              readonly
+              class="w-full border border-stone-300 bg-white p-2 font-mono text-[11px] text-ink"
+              :aria-label="t('reservation.accessLink')"
+            />
+            <button
+              type="button"
+              data-test="copy-access-link"
+              class="self-start border border-clay px-3 py-2 text-clay"
+              @click="copyAccessLink"
+            >
+              {{
+                accessLinkCopied
+                  ? t('reservation.accessLinkCopied')
+                  : t('reservation.copyAccessLink')
+              }}
+            </button>
+          </div>
         </div>
         <button
           v-if="
@@ -535,31 +558,6 @@ async function lookupReservation() {
           @click="cancelHold"
         >
           {{ t('reservation.cancel') }}
-        </button>
-        <button
-          v-if="
-            reservationStore.currentReservation.status === 'PENDING_PAYMENT' &&
-            reservationSecondsRemaining !== 0
-          "
-          type="button"
-          class="bg-clay px-4 py-2 text-xs text-white transition hover:bg-[#ad593b] focus:outline-none focus:ring-2 focus:ring-clay/50 disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="reservationStore.isLoading"
-          @click="confirmHold"
-        >
-          {{ t('reservation.confirm') }}
-        </button>
-        <button
-          v-if="
-            reservationStore.currentReservation.status === 'PENDING_PAYMENT' &&
-            reservationSecondsRemaining === 0 &&
-            reservationStore.errorCode
-          "
-          type="button"
-          class="border border-clay px-4 py-2 text-xs text-clay transition hover:bg-clay hover:text-white focus:outline-none focus:ring-2 focus:ring-clay/50 disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="reservationStore.isLoading"
-          @click="retryExpiration"
-        >
-          {{ t('reservation.retryExpiration') }}
         </button>
         <p
           v-if="reservationStore.errorCode"
@@ -590,7 +588,7 @@ async function lookupReservation() {
           </p>
         </div>
         <form
-          class="grid gap-3 md:grid-cols-[1fr_auto]"
+          class="grid gap-3 md:grid-cols-[1fr_1fr_auto]"
           @submit.prevent="lookupReservation"
         >
           <label class="sr-only" for="reservation-lookup-id">
@@ -601,6 +599,17 @@ async function lookupReservation() {
             v-model="reservationLookupId"
             class="border-b border-stone-300 bg-transparent p-2 text-sm text-ink outline-none focus:border-clay"
             :placeholder="t('reservation.lookup.placeholder')"
+            autocomplete="off"
+            inputmode="text"
+          />
+          <label class="sr-only" for="reservation-lookup-token">
+            {{ t('reservation.lookup.tokenLabel') }}
+          </label>
+          <input
+            id="reservation-lookup-token"
+            v-model="reservationLookupToken"
+            class="border-b border-stone-300 bg-transparent p-2 text-sm text-ink outline-none focus:border-clay"
+            :placeholder="t('reservation.lookup.tokenPlaceholder')"
             autocomplete="off"
             inputmode="text"
           />
@@ -661,6 +670,20 @@ async function lookupReservation() {
               }}
             </strong>
           </span>
+          <button
+            v-if="
+              ['PENDING_PAYMENT', 'CONFIRMED'].includes(
+                reservationStore.reservationDetails.status,
+              )
+            "
+            type="button"
+            data-test="cancel-looked-up-reservation"
+            class="border border-clay px-4 py-2 text-xs text-clay md:col-span-3 md:justify-self-start"
+            :disabled="reservationStore.isLoading"
+            @click="cancelLookedUpReservation"
+          >
+            {{ t('reservation.cancel') }}
+          </button>
         </div>
       </div>
     </section>

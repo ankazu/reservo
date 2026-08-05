@@ -3,10 +3,11 @@ import { defineEventHandler, getRouterParam, setResponseStatus } from 'h3'
 import type { ApiResponse } from '../../../../shared/types/api'
 import { reservationIdSchema } from '../../../../shared/schemas/reservation'
 import {
+  cancelReservation,
   ReservationTransitionError,
-  transitionReservation,
 } from '../../../services/reservation/transition'
 import { db } from '../../../utils/db'
+import { getReservationAccessToken } from '../../../utils/reservation-access'
 
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
@@ -24,6 +25,17 @@ export default defineEventHandler(
       }
     }
     const reservationId = parsedReservationId.data
+    const accessToken = getReservationAccessToken(event)
+    if (!accessToken) {
+      setResponseStatus(event, 404)
+      return {
+        success: false,
+        error: {
+          code: 'RESERVATION_NOT_FOUND',
+          message: 'RESERVATION_NOT_FOUND',
+        },
+      }
+    }
     if (!db) {
       setResponseStatus(event, 503)
       return {
@@ -36,10 +48,10 @@ export default defineEventHandler(
     }
 
     try {
-      const reservation = await transitionReservation(
+      const reservation = await cancelReservation(
         db,
         reservationId,
-        'CANCELLED',
+        accessToken,
       )
       return { success: true, data: reservation }
     } catch (error) {

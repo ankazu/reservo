@@ -11,6 +11,7 @@ import {
   enforceClientRateLimit,
   reservationLookupRateLimiter,
 } from '../../utils/request-guards'
+import { getReservationAccessToken } from '../../utils/reservation-access'
 
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
@@ -34,6 +35,17 @@ export default defineEventHandler(
       }
     }
     const reservationId = parsedReservationId.data
+    const accessToken = getReservationAccessToken(event)
+    if (!accessToken) {
+      setResponseStatus(event, 404)
+      return {
+        success: false,
+        error: {
+          code: 'RESERVATION_NOT_FOUND',
+          message: 'RESERVATION_NOT_FOUND',
+        },
+      }
+    }
     if (!db) {
       setResponseStatus(event, 503)
       return {
@@ -46,7 +58,10 @@ export default defineEventHandler(
     }
 
     try {
-      return { success: true, data: await getReservation(db, reservationId) }
+      return {
+        success: true,
+        data: await getReservation(db, reservationId, accessToken),
+      }
     } catch (error) {
       if (error instanceof ReservationLookupError) {
         setResponseStatus(event, 404)

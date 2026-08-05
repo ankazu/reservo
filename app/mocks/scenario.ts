@@ -35,9 +35,7 @@ export function createMockApiClient(
         ) as Promise<T>
       }
       const statusByEndpoint: Record<string, ReservationStatus> = {
-        [API_ENDPOINTS.confirmReservation('mock-1')]: 'CONFIRMED',
         [API_ENDPOINTS.cancelReservation('mock-1')]: 'CANCELLED',
-        [API_ENDPOINTS.expireReservation('mock-1')]: 'EXPIRED',
       }
       const endpoint = path.replace(/mock-[^/]+/, 'mock-1')
       const targetStatus = statusByEndpoint[endpoint]

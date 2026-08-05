@@ -1,15 +1,37 @@
-import { defineEventHandler, getRouterParam, setResponseStatus } from 'h3'
+import {
+  defineEventHandler,
+  getHeader,
+  getRouterParam,
+  setResponseStatus,
+} from 'h3'
 
-import type { ApiResponse } from '../../../../shared/types/api'
-import { reservationIdSchema } from '../../../../shared/schemas/reservation'
+import type { ApiResponse } from '../../../../../shared/types/api'
+import { reservationIdSchema } from '../../../../../shared/schemas/reservation'
 import {
   ReservationTransitionError,
   transitionReservation,
-} from '../../../services/reservation/transition'
-import { db } from '../../../utils/db'
+} from '../../../../services/reservation/transition'
+import { db } from '../../../../utils/db'
+import { isMaintenanceSecretValid } from '../../../../utils/maintenance-auth'
 
 export default defineEventHandler(
   async (event): Promise<ApiResponse<unknown>> => {
+    if (
+      !isMaintenanceSecretValid(
+        getHeader(event, 'x-maintenance-secret'),
+        process.env.RESERVATION_MAINTENANCE_SECRET,
+      )
+    ) {
+      setResponseStatus(event, 401)
+      return {
+        success: false,
+        error: {
+          code: 'MAINTENANCE_UNAUTHORIZED',
+          message: 'MAINTENANCE_UNAUTHORIZED',
+        },
+      }
+    }
+
     const parsedReservationId = reservationIdSchema.safeParse(
       getRouterParam(event, 'reservationId'),
     )
@@ -23,7 +45,6 @@ export default defineEventHandler(
         },
       }
     }
-    const reservationId = parsedReservationId.data
     if (!db) {
       setResponseStatus(event, 503)
       return {
@@ -36,12 +57,14 @@ export default defineEventHandler(
     }
 
     try {
-      const reservation = await transitionReservation(
-        db,
-        reservationId,
-        'EXPIRED',
-      )
-      return { success: true, data: reservation }
+      return {
+        success: true,
+        data: await transitionReservation(
+          db,
+          parsedReservationId.data,
+          'CONFIRMED',
+        ),
+      }
     } catch (error) {
       if (error instanceof ReservationTransitionError) {
         setResponseStatus(

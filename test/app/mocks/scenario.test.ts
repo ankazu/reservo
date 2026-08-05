@@ -37,7 +37,14 @@ describe('mock scenarios', () => {
       'key-1',
     )
 
-    expect(second).toEqual(first)
+    expect(second).toMatchObject({
+      success: true,
+      data: { id: first.success ? first.data.id : '' },
+    })
+    if (second.success) {
+      expect(second.data).not.toHaveProperty('accessToken')
+      expect(second.data).not.toHaveProperty('accessUrl')
+    }
     expect(changed).toMatchObject({
       success: false,
       error: { code: 'IDEMPOTENCY_PAYLOAD_MISMATCH' },

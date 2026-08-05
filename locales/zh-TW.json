@@ -108,14 +108,17 @@
     },
     "success": "房間已保留，請於期限內完成付款。",
     "expiresIn": "剩餘 {time}",
-    "confirm": "確認訂房",
     "cancel": "取消保留",
-    "retryExpiration": "重試更新狀態",
+    "accessLink": "開啟或複製安全訂房連結",
+    "copyAccessLink": "複製安全訂房連結",
+    "accessLinkCopied": "已複製安全連結",
     "lookup": {
       "title": "查詢訂房",
-      "description": "輸入訂房編號，查看最新的訂房摘要。",
+      "description": "輸入訂房編號與 access token，查看最新的訂房摘要。",
       "label": "訂房編號",
       "placeholder": "貼上訂房編號",
+      "tokenLabel": "Access token",
+      "tokenPlaceholder": "貼上 access token",
       "submit": "查詢訂房",
       "loading": "查詢中…",
       "status": "狀態",
@@ -123,7 +126,7 @@
       "dateRange": "{checkIn} 至 {checkOut}",
       "total": "總額",
       "errors": {
-        "required": "請輸入訂房編號。"
+        "required": "請輸入訂房編號與 access token。"
       }
     },
     "status": {

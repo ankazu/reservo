@@ -4,6 +4,7 @@ import {
   findReservationById,
   findReservationItems,
 } from '../../repositories/reservation'
+import { isReservationAccessTokenValid } from '../../utils/reservation-access'
 
 type Database = NonNullable<typeof db>
 
@@ -16,10 +17,14 @@ export class ReservationLookupError extends Error {
 export async function getReservation(
   database: Database,
   reservationId: string,
+  accessToken: string,
 ) {
   return database.transaction(async (tx) => {
     const reservation = await findReservationById(tx, reservationId)
-    if (!reservation) {
+    if (
+      !reservation ||
+      !isReservationAccessTokenValid(accessToken, reservation.accessTokenHash)
+    ) {
       throw new ReservationLookupError('RESERVATION_NOT_FOUND')
     }
 

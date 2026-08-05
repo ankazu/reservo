@@ -108,14 +108,17 @@
     },
     "success": "Your room is held. Please complete payment before it expires.",
     "expiresIn": "{time} remaining",
-    "confirm": "Confirm reservation",
     "cancel": "Cancel hold",
-    "retryExpiration": "Retry status update",
+    "accessLink": "Open or copy secure reservation link",
+    "copyAccessLink": "Copy secure reservation link",
+    "accessLinkCopied": "Secure link copied",
     "lookup": {
       "title": "Look up a reservation",
-      "description": "Enter your reservation ID to view the latest summary.",
+      "description": "Enter your reservation ID and access token to view the latest summary.",
       "label": "Reservation ID",
       "placeholder": "Paste reservation ID",
+      "tokenLabel": "Access token",
+      "tokenPlaceholder": "Paste access token",
       "submit": "Look up",
       "loading": "Looking up…",
       "status": "Status",
@@ -123,7 +126,7 @@
       "dateRange": "{checkIn} → {checkOut}",
       "total": "Total",
       "errors": {
-        "required": "Please enter a reservation ID."
+        "required": "Please enter a reservation ID and access token."
       }
     },
     "status": {

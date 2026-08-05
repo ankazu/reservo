@@ -2,6 +2,7 @@ import type { ApiResponse } from '~~/shared/types/api'
 import type {
   CreateReservationHoldInput,
   Reservation,
+  ReservationCreationResponse,
   ReservationHold,
 } from '~~/shared/types/reservation'
 import { getCancellableUntil, getNightCount } from '~~/shared/types/reservation'
@@ -22,7 +23,7 @@ export function createReservationsMock(scenario: MockScenario) {
     async createHold(
       input: CreateReservationHoldInput,
       idempotencyKey: string,
-    ): Promise<ApiResponse<ReservationHold>> {
+    ): Promise<ApiResponse<ReservationCreationResponse>> {
       if (scenario === 'invalid-request') {
         return {
           success: false,
@@ -57,7 +58,7 @@ export function createReservationsMock(scenario: MockScenario) {
             },
           }
         }
-        return { success: true, data: existing.reservation as ReservationHold }
+        return { success: true, data: existing.reservation as Reservation }
       }
 
       const reservation: ReservationHold = {
@@ -81,7 +82,15 @@ export function createReservationsMock(scenario: MockScenario) {
             : new Date(Date.now() + 900_000).toISOString(),
       }
       holds.set(idempotencyKey, { fingerprint, reservation })
-      return { success: true, data: reservation }
+      const accessToken = 'A'.repeat(43)
+      return {
+        success: true,
+        data: {
+          ...reservation,
+          accessToken,
+          accessUrl: `/#reservationId=${reservation.id}&accessToken=${accessToken}`,
+        },
+      }
     },
     async transitionTo(
       status: Reservation['status'],

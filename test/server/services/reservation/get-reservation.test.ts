@@ -13,6 +13,9 @@ import {
 } from '../../../../server/services/reservation/get-reservation'
 
 describe('get reservation service', () => {
+  const accessToken = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+  const accessTokenHash =
+    '0f007385b6f9d4b7eeb2748605afe1a984a0a3bfa3f014d09e2a784ce9e5cd1a'
   const database = {
     transaction: async (callback: (tx: object) => Promise<unknown>) =>
       callback({}),
@@ -36,6 +39,7 @@ describe('get reservation service', () => {
       expiresAt: null,
       idempotencyKey: 'internal-key',
       requestFingerprint: 'internal-fingerprint',
+      accessTokenHash,
     }
     const item = {
       id: 'item-1',
@@ -52,7 +56,7 @@ describe('get reservation service', () => {
     repository.findReservationItems.mockResolvedValue([item])
 
     await expect(
-      getReservation(database as never, 'reservation-1'),
+      getReservation(database as never, 'reservation-1', accessToken),
     ).resolves.toEqual({
       id: reservation.id,
       propertyId: reservation.propertyId,
@@ -79,8 +83,31 @@ describe('get reservation service', () => {
   it('raises a stable not-found error', async () => {
     repository.findReservationById.mockResolvedValue(undefined)
 
-    await expect(getReservation(database as never, 'missing')).rejects.toEqual(
+    await expect(
+      getReservation(database as never, 'missing', accessToken),
+    ).rejects.toEqual(new ReservationLookupError('RESERVATION_NOT_FOUND'))
+  })
+
+  it.each([
+    ['missing token', ''],
+    ['malformed token', 'short'],
+    ['token for another reservation', 'B'.repeat(43)],
+  ])('does not return guest details for %s', async (_case, token) => {
+    repository.findReservationById.mockResolvedValue({
+      id: 'reservation-1',
+      accessTokenHash,
+      guestName: 'Private Guest',
+      guestEmail: 'private@example.com',
+    })
+
+    const result = getReservation(database as never, 'reservation-1', token)
+
+    await expect(result).rejects.toEqual(
       new ReservationLookupError('RESERVATION_NOT_FOUND'),
     )
+    await expect(result).rejects.not.toMatchObject({
+      guestName: 'Private Guest',
+      guestEmail: 'private@example.com',
+    })
   })
 })

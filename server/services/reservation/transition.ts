@@ -11,6 +11,8 @@ import type { Transaction } from '../../repositories/reservation'
 import { canCancelReservation, canTransitionReservation } from './rules'
 import { getNightCount } from '../../../shared/types/reservation'
 import type { db } from '../../utils/db'
+import { isReservationAccessTokenValid } from '../../utils/reservation-access'
+import { toReservationResponse } from './response'
 
 type Database = NonNullable<typeof db>
 
@@ -36,6 +38,29 @@ export async function transitionReservation(
   return database.transaction((tx) =>
     transitionReservationInTransaction(tx, reservationId, targetStatus),
   )
+}
+
+export async function cancelReservation(
+  database: Database,
+  reservationId: string,
+  accessToken: string,
+) {
+  return database.transaction(async (tx) => {
+    const reservation = await lockReservation(tx, reservationId)
+    if (
+      !reservation ||
+      !isReservationAccessTokenValid(accessToken, reservation.accessTokenHash)
+    ) {
+      throw new ReservationTransitionError('RESERVATION_NOT_FOUND')
+    }
+    return transitionReservationInTransaction(
+      tx,
+      reservationId,
+      'CANCELLED',
+      new Date(),
+      reservation,
+    )
+  })
 }
 
 export async function expireReservations(
@@ -71,13 +96,16 @@ async function transitionReservationInTransaction(
   reservationId: string,
   targetStatus: ReservationStatus,
   now = new Date(),
+  lockedReservation?: Awaited<ReturnType<typeof lockReservation>>,
 ) {
-  const reservation = await lockReservation(tx, reservationId)
+  const reservation =
+    lockedReservation ?? (await lockReservation(tx, reservationId))
   if (!reservation) {
     throw new ReservationTransitionError('RESERVATION_NOT_FOUND')
   }
 
-  if (reservation.status === targetStatus) return reservation
+  if (reservation.status === targetStatus)
+    return toReservationResponse(reservation)
   if (!canTransitionReservation(reservation.status, targetStatus)) {
     throw new ReservationTransitionError('INVALID_STATUS_TRANSITION')
   }
@@ -122,5 +150,7 @@ async function transitionReservationInTransaction(
     }
   }
 
-  return updateReservationStatus(tx, reservation.id, targetStatus)
+  return toReservationResponse(
+    await updateReservationStatus(tx, reservation.id, targetStatus),
+  )
 }

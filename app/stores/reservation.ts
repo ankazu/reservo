@@ -10,7 +10,7 @@ import type {
   DateRange,
   Reservation,
   ReservationDetails,
-  ReservationHold,
+  ReservationCreationResponse,
 } from '~~/shared/types/reservation'
 
 type SearchState = DateRange & {
@@ -26,7 +26,9 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     guests: 2,
   })
   const availabilityByRoomTypeId = ref<Record<string, AvailabilityResponse>>({})
-  const currentReservation = ref<ReservationHold | Reservation | null>(null)
+  const currentReservation = ref<
+    ReservationCreationResponse | Reservation | null
+  >(null)
   const reservationDetails = ref<ReservationDetails | null>(null)
   const isAvailabilityLoading = ref(false)
   const isLoading = ref(false)
@@ -39,6 +41,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
   const lookupErrorDetails = ref<unknown>(undefined)
   const idempotencyKey = ref<string | null>(null)
   const requestFingerprint = ref<string | null>(null)
+  const reservationAccessToken = ref<string | null>(null)
+  const reservationAccessUrl = ref<string | null>(null)
   let availabilityController: AbortController | null = null
   let availabilityRequest = 0
 
@@ -141,6 +145,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     if (requestFingerprint.value !== fingerprint) {
       requestFingerprint.value = fingerprint
       idempotencyKey.value = crypto.randomUUID()
+      reservationAccessToken.value = null
+      reservationAccessUrl.value = null
     }
     try {
       const result = await api.reservations.createReservationHold(
@@ -148,6 +154,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
         idempotencyKey.value ?? crypto.randomUUID(),
       )
       currentReservation.value = result
+      if (result.accessToken) reservationAccessToken.value = result.accessToken
+      if (result.accessUrl) reservationAccessUrl.value = result.accessUrl
       return result
     } catch (error) {
       captureError(error)
@@ -168,6 +176,12 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     try {
       const result = await action(id)
       currentReservation.value = result
+      if (reservationDetails.value?.id === result.id) {
+        reservationDetails.value = {
+          ...reservationDetails.value,
+          status: result.status,
+        }
+      }
       return result
     } catch (error) {
       captureError(error)
@@ -179,14 +193,16 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
 
   async function getReservation(
     id: string,
+    accessToken: string,
   ): Promise<ReservationDetails | null> {
     if (isLookupLoading.value) return null
     isLookupLoading.value = true
     lookupErrorCode.value = null
     lookupErrorDetails.value = undefined
     try {
-      const result = await api.reservations.getReservation(id)
+      const result = await api.reservations.getReservation(id, accessToken)
       reservationDetails.value = result
+      reservationAccessToken.value = accessToken
       return result
     } catch (error) {
       reservationDetails.value = null
@@ -203,18 +219,16 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     }
   }
 
-  const confirmReservation = (id: string) =>
-    transition(id, (reservationId) =>
-      api.reservations.confirmReservation(reservationId),
+  const cancelReservation = (id: string, accessToken?: string) => {
+    const token = accessToken ?? reservationAccessToken.value
+    if (!token) {
+      errorCode.value = 'RESERVATION_NOT_FOUND'
+      return Promise.resolve(null)
+    }
+    return transition(id, (reservationId) =>
+      api.reservations.cancelReservation(reservationId, token),
     )
-  const cancelReservation = (id: string) =>
-    transition(id, (reservationId) =>
-      api.reservations.cancelReservation(reservationId),
-    )
-  const expireReservation = (id: string) =>
-    transition(id, (reservationId) =>
-      api.reservations.expireReservation(reservationId),
-    )
+  }
 
   function clearReservation() {
     currentReservation.value = null
@@ -225,6 +239,8 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     lookupErrorDetails.value = undefined
     idempotencyKey.value = null
     requestFingerprint.value = null
+    reservationAccessToken.value = null
+    reservationAccessUrl.value = null
   }
 
   onScopeDispose(cancelAvailability)
@@ -243,15 +259,15 @@ export function createReservationStore(api: ReturnType<typeof useApiModules>) {
     errorDetails,
     lookupErrorCode,
     lookupErrorDetails,
+    reservationAccessToken,
+    reservationAccessUrl,
     setSearch,
     searchAvailability,
     searchAvailabilityForRooms,
     clearAvailability,
     cancelAvailability,
     createHold,
-    confirmReservation,
     cancelReservation,
-    expireReservation,
     getReservation,
     clearReservation,
   }

@@ -5,7 +5,7 @@ import type {
   CreateReservationHoldInput,
   Reservation,
   ReservationDetails,
-  ReservationHold,
+  ReservationCreationResponse,
 } from '~~/shared/types/reservation'
 import { AppError } from './errors'
 import type { ApiClient, RequestOptions } from './client'
@@ -21,12 +21,19 @@ export function createReservationsApi(client: ApiClient) {
   return {
     getReservation(
       id: string,
+      accessToken: string,
       options?: RequestOptions,
     ): Promise<ReservationDetails> {
       return unwrap(
         client.get<ApiResponse<ReservationDetails>>(
           API_ENDPOINTS.reservation(id),
-          options,
+          {
+            ...options,
+            headers: {
+              ...options?.headers,
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
         ),
       )
     },
@@ -34,9 +41,9 @@ export function createReservationsApi(client: ApiClient) {
       input: CreateReservationHoldInput,
       idempotencyKey: string,
       options?: RequestOptions,
-    ): Promise<ReservationHold> {
+    ): Promise<ReservationCreationResponse> {
       return unwrap(
-        client.post<ApiResponse<ReservationHold>>(
+        client.post<ApiResponse<ReservationCreationResponse>>(
           API_ENDPOINTS.reservations,
           input,
           {
@@ -50,39 +57,22 @@ export function createReservationsApi(client: ApiClient) {
         ),
       )
     },
-    confirmReservation(
-      id: string,
-      options?: RequestOptions,
-    ): Promise<Reservation> {
-      return unwrap(
-        client.post<ApiResponse<Reservation>>(
-          API_ENDPOINTS.confirmReservation(id),
-          {},
-          options,
-        ),
-      )
-    },
     cancelReservation(
       id: string,
+      accessToken: string,
       options?: RequestOptions,
     ): Promise<Reservation> {
       return unwrap(
         client.post<ApiResponse<Reservation>>(
           API_ENDPOINTS.cancelReservation(id),
           {},
-          options,
-        ),
-      )
-    },
-    expireReservation(
-      id: string,
-      options?: RequestOptions,
-    ): Promise<Reservation> {
-      return unwrap(
-        client.post<ApiResponse<Reservation>>(
-          API_ENDPOINTS.expireReservation(id),
-          {},
-          options,
+          {
+            ...options,
+            headers: {
+              ...options?.headers,
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
         ),
       )
     },

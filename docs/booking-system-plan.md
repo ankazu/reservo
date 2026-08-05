@@ -5,8 +5,8 @@
 # Reservo 訂房系統 MVP 主計劃
 
 - 最後更新：2026-08-05
-- 目前階段：公開 request 日期邊界與濫用防護已完成，下一步補齊 guest reservation access
-- 唯一下一步：[Slice 2：Guest reservation access](#slice-2guest-reservation-access)
+- 目前階段：Guest reservation access 已完成，下一步建立 CI 與真實 PostgreSQL release gate
+- 唯一下一步：[Slice 3：CI 與真實 PostgreSQL release gate](#slice-3ci-與真實-postgresql-release-gate)
 
 ## 1. 目標與範圍
 
@@ -177,9 +177,8 @@ External input 使用 Zod。API error code 與 message 保持 language-neutral�
 GET  /api/availability
 POST /api/reservations
 GET  /api/reservations/:reservationId
-POST /api/reservations/:reservationId/confirm
 POST /api/reservations/:reservationId/cancel
-POST /api/reservations/:reservationId/expire
+POST /api/internal/reservations/:reservationId/confirm
 POST /api/internal/reservations/expire
 ```
 
@@ -210,16 +209,19 @@ GET /api/room-types
 - Cancellation／expiration exactly-once inventory release
 - Reservation 與 item snapshots、price summary、guest count、cancellable deadline
 - Reservation details API
-- 首頁搜尋、availability、hold、倒數、confirm、cancel、retry 與簡易 lookup UI
+- 首頁搜尋、availability、hold、倒數、guest-authorized cancel 與 secure lookup UI
 - Error code 到 `zh-TW`／`en` i18n
 - Availability 與 hold 共用日期政策（台北今日、30 晚、365 天 booking window）
 - Availability、reservation lookup 與 hold 的 application-level rate limit
 - Hold request 8 KiB body、128-byte idempotency key 與 30-row expansion 上限
+- 256-bit guest reservation access token；database 只保存 SHA-256 hash
+- Lookup 與 cancel 以 reservation ID＋Bearer token 授權，失敗一律不洩漏 reservation 或 PII
+- Confirm 與 expiration 僅保留 maintenance-secret 保護的 internal boundary
 
 ### 目前驗證證據
 
-- 2026-08-05：Vitest 71 passed、10 skipped。
-- 被 skipped 的 10 個 tests 需要真實 `DATABASE_URL`，包含重要 PostgreSQL integration coverage，因此不算 release verification。
+- 2026-08-05：Vitest 85 passed、11 skipped。
+- 被 skipped 的 11 個 tests 需要真實 `DATABASE_URL`，包含重要 PostgreSQL integration coverage，因此不算 release verification。
 - UI 局部 typecheck 已存在，但沒有覆蓋完整 pages、stores、server 與 tests。
 - 尚無 CI、完整 Playwright flow 與可重現的 production deployment verification。
 
@@ -268,7 +270,7 @@ GET /api/room-types
 
 ### Slice 2：Guest reservation access
 
-優先級：P0；狀態：下一步；實作前先新增 ADR。
+優先級：P0；狀態：✅ 完成（2026-08-05）；決策見 [ADR 0004](adr/0004-guest-reservation-access.md)。
 
 - 建立高 entropy reservation access token。
 - API 只回傳一次明文 token，database 只保存 hash。
@@ -280,9 +282,17 @@ GET /api/room-types
 
 完成條件：只知道 reservation UUID 無法讀取 guest PII 或改變訂房狀態；沒有會員帳號的 guest 仍能安全保存並重新開啟訂房。
 
+驗證證據：
+
+- 新 reservation 產生 256-bit base64url token，只在首次 create response 回傳；migration `0010_complete_young_avengers` 新增 nullable unique SHA-256 hash 欄位，legacy rows 預設不可存取。
+- Lookup 與 cancel 接受 `Authorization: Bearer`；missing、malformed、wrong-reservation 與 unknown reservation 統一回傳 `404 RESERVATION_NOT_FOUND`。
+- Secure details URL 將 token 放在 fragment，首頁可讀取 fragment 或手動輸入 ID＋token，API client 只透過 Authorization header 傳送 token。
+- 公開 confirm 與 single-expire routes 已移除；confirm 移至 maintenance-secret 保護的 internal route，expiration 使用既有 protected batch route。
+- Focused service、route、client 與 token tests 涵蓋 access control、PII 不外洩、internal confirm，以及 one-time token／hash integration contract。
+
 ### Slice 3：CI 與真實 PostgreSQL release gate
 
-優先級：P0；狀態：未開始。
+優先級：P0；狀態：下一步。
 
 - CI 啟動與 production major version 相同的 PostgreSQL。
 - 從空資料庫套用全部 migrations。

@@ -48,6 +48,7 @@ export async function findReservationById(
       totalAmount: schema.reservations.totalAmount,
       cancellableUntil: schema.reservations.cancellableUntil,
       expiresAt: schema.reservations.expiresAt,
+      accessTokenHash: schema.reservations.accessTokenHash,
     })
     .from(schema.reservations)
     .where(eq(schema.reservations.id, reservationId))
@@ -229,7 +230,9 @@ export async function updateReservationStatus(
     .where(eq(schema.reservations.id, reservationId))
     .returning()
 
-  return rows[0]
+  const reservation = rows[0]
+  if (!reservation) throw new Error('RESERVATION_UPDATE_FAILED')
+  return reservation
 }
 
 export async function createReservation(

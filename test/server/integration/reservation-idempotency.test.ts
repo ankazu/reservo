@@ -123,6 +123,37 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     expect(inventory.every((row) => row.reservedQuantity === 1)).toBe(true)
   })
 
+  it('returns the access token once and persists only its hash', async () => {
+    const key = `integration-access-${crypto.randomUUID()}`
+    const fingerprint = getReservationRequestFingerprint(input)
+
+    const created = await createReservationHold(
+      database,
+      input,
+      key,
+      fingerprint,
+    )
+    const replayed = await createReservationHold(
+      database,
+      input,
+      key,
+      fingerprint,
+    )
+    reservationIds.push(created.id)
+
+    expect(created.accessToken).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    expect(created.accessUrl).toContain(`#reservationId=${created.id}`)
+    expect(replayed).not.toHaveProperty('accessToken')
+    expect(replayed).not.toHaveProperty('accessUrl')
+
+    const rows = await database
+      .select({ accessTokenHash: schema.reservations.accessTokenHash })
+      .from(schema.reservations)
+      .where(eq(schema.reservations.id, created.id))
+    expect(rows[0]?.accessTokenHash).toMatch(/^[a-f0-9]{64}$/)
+    expect(rows[0]?.accessTokenHash).not.toBe(created.accessToken)
+  })
+
   it('prevents overselling with concurrent different keys', async () => {
     const results = await Promise.allSettled([
       createReservationHold(

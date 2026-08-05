@@ -119,6 +119,18 @@ Production hosting／reverse proxy 必須保留可信的 client IP，並在 edge
 
 Stay date policy 以 `Asia/Taipei` 今日為邊界，最多 30 晚、最遠可在 365 天後入住。Hold JSON body 上限為 8 KiB，`Idempotency-Key` 上限為 128 bytes。
 
+## Guest reservation access
+
+新 reservation 首次建立時會回傳一次 256-bit access token 與 fragment-based secure URL。Database 只保存 token 的 SHA-256 hash；idempotent replay 不會再次回傳明文 token。請妥善保存 secure URL，MVP 不提供遺失 token 的自動復原。
+
+Lookup 與 cancel request 必須同時提供 reservation ID 與 header：
+
+```http
+Authorization: Bearer <reservation-access-token>
+```
+
+Token 不得放在 query string 或 logs。若 production proxy 重寫 request logs，也必須確認不記錄 `Authorization` header。Fake-payment confirm 位於 `POST /api/internal/reservations/:reservationId/confirm`，與 expiration maintenance endpoint 使用相同的 `X-Maintenance-Secret` internal boundary。
+
 ## 常用指令
 
 | 指令                   | 用途                                  |
