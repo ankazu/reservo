@@ -214,6 +214,7 @@ POST /api/internal/reservations/expire
 - Lookup 與 cancel 以 reservation ID＋Bearer token 授權，失敗一律不洩漏 reservation 或 PII
 - Confirm 與 expiration 僅保留 maintenance-secret 保護的 internal boundary
 - Read-only property／room-type catalog API 與動態首頁 catalog
+- Room type 使用不隨 database UUID／reseed 改變的 stable code 解析 locale messages
 - 多房型 availability 維持 client-side all-or-nothing aggregation
 - 未占用 inventory row 會在 availability／hold provisioning 時同步 Room 數量；已有 reserved／blocked 的 row 保留原 total
 
@@ -322,6 +323,7 @@ POST /api/internal/reservations/expire
 
 - `GET /api/property` 與 `GET /api/room-types` route tests 覆蓋成功、空 catalog、property 不存在與 database unavailable。
 - 首頁 page test 使用不同於 seed 的動態 IDs，驗證房型呈現與 availability requests 都來自 catalog response。
+- 首頁 page test 驗證 UUID 改變但 stable room-type code 不變時仍解析相同翻譯，且不顯示 DB name／description fallback。
 - Catalog client 以 `Promise.all` 載入兩個 endpoints；任一失敗時不顯示不完整 catalog。
 - PostgreSQL integration regression test 驗證未占用 rows 同步 Room 數量，blocked row 不被縮減。
 

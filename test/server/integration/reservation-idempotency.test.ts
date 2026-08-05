@@ -43,6 +43,7 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     })
     await database.insert(schema.roomTypes).values({
       id: roomTypeId,
+      code: `idempotency-${roomTypeId}`,
       propertyId,
       name: 'Idempotency Test Room',
       description: 'Test room',

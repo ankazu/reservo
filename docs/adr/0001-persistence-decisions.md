@@ -55,6 +55,16 @@ The next availability or hold request for an unoccupied date performs the
 idempotent synchronization; no separate catalog scheduler is required for the
 MVP.
 
+### Room-type localization identity
+
+`room_types.id` is database identity and may change when catalog data is
+re-seeded. `room_types.code` is a required, globally unique, stable domain key
+used to resolve `roomTypes.<code>.name` and `roomTypes.<code>.description` from
+locale files. The catalog API returns both values, but the public UI must not use
+the database `name` or `description` as an i18n fallback. Adding a public room
+type therefore requires its stable code and aligned locale messages, without
+changing page code.
+
 ### Authentication boundary
 
 Authentication is outside the MVP. A reservation may be created for a guest

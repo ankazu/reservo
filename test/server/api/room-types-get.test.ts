@@ -30,6 +30,7 @@ describe('GET /api/room-types', () => {
     const roomTypes = [
       {
         id: 'room-type-1',
+        code: 'garden-room',
         propertyId: 'property-1',
         name: 'Garden Room',
         description: 'Garden view',

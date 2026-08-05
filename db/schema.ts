@@ -28,6 +28,7 @@ export const properties = pgTable('properties', {
 
 export const roomTypes = pgTable('room_types', {
   id: uuid('id').defaultRandom().primaryKey(),
+  code: text('code').notNull().unique(),
   propertyId: uuid('property_id')
     .notNull()
     .references(() => properties.id),

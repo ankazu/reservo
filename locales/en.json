@@ -83,15 +83,15 @@
     "catalogEmpty": "No room types are currently available."
   },
   "roomTypes": {
-    "00000000-0000-4000-8000-000000000101": {
+    "sunroom": {
       "name": "Sunroom",
       "description": "A simple, just-right room where the morning light wakes you."
     },
-    "00000000-0000-4000-8000-000000000102": {
+    "garden-room": {
       "name": "Garden room",
       "description": "Open the window to green space and take life slowly for a few days."
     },
-    "00000000-0000-4000-8000-000000000103": {
+    "blank-space-suite": {
       "name": "Blank-space suite",
       "description": "A little more space, and a little more time undisturbed."
     }

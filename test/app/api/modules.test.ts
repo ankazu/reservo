@@ -93,6 +93,7 @@ describe('catalog API module', () => {
         data: [
           {
             id: 'room-type-1',
+            code: 'garden-room',
             propertyId: 'property-1',
             name: 'Garden Room',
             description: 'Garden view',

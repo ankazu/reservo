@@ -46,14 +46,16 @@ const catalog = {
   roomTypes: [
     {
       id: 'dynamic-room-a',
+      code: 'garden-room',
       propertyId: 'dynamic-property',
-      name: 'Dynamic Garden',
-      description: 'A room loaded from the catalog',
+      name: 'Untranslated database garden',
+      description: 'Untranslated database description',
       maxGuests: 2,
       nightlyPrice: 5800,
     },
     {
       id: 'dynamic-room-b',
+      code: 'blank-space-suite',
       propertyId: 'dynamic-property',
       name: 'Dynamic Suite',
       description: 'Another catalog room',
@@ -97,7 +99,14 @@ beforeAll(async () => {
   vi.stubGlobal('useI18n', () => ({
     locale: ref('zh-TW'),
     setLocale: vi.fn(),
-    t: (key: string, _values?: unknown, fallback?: string) => fallback ?? key,
+    t: (key: string) =>
+      ({
+        'roomTypes.garden-room.name': 'Translated Garden',
+        'roomTypes.garden-room.description': 'Translated garden description',
+        'roomTypes.blank-space-suite.name': 'Translated Suite',
+        'roomTypes.blank-space-suite.description':
+          'Translated suite description',
+      })[key] ?? key,
   }))
   vi.stubGlobal('useReservationStore', () => reservationStore)
   IndexPage = (await import('../../../app/pages/index.vue')).default
@@ -159,7 +168,8 @@ describe('availability results', () => {
     await flushPromises()
 
     expect(wrapper.findAll('#rooms article')).toHaveLength(2)
-    expect(wrapper.text()).toContain('Dynamic Garden')
+    expect(wrapper.text()).toContain('Translated Garden')
+    expect(wrapper.text()).not.toContain('Untranslated database garden')
     await wrapper.get('[data-test="search"]').trigger('click')
     await flushPromises()
 

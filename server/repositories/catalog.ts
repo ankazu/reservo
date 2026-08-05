@@ -22,6 +22,7 @@ export async function findRoomTypeCatalog(tx: Transaction, propertyId: string) {
   return tx
     .select({
       id: schema.roomTypes.id,
+      code: schema.roomTypes.code,
       propertyId: schema.roomTypes.propertyId,
       name: schema.roomTypes.name,
       description: schema.roomTypes.description,

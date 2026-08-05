@@ -357,7 +357,7 @@ async function lookupReservation() {
           <div class="p-[23px_22px_20px]">
             <div class="flex items-baseline justify-between gap-3">
               <h3 class="font-serif text-[23px] font-medium">
-                {{ t(`roomTypes.${room.id}.name`, {}, room.name) }}
+                {{ t(`roomTypes.${room.code}.name`) }}
               </h3>
               <span
                 v-if="
@@ -374,7 +374,7 @@ async function lookupReservation() {
               </span>
             </div>
             <p class="min-h-[42px] text-[13px] leading-6 text-moss">
-              {{ t(`roomTypes.${room.id}.description`, {}, room.description) }}
+              {{ t(`roomTypes.${room.code}.description`) }}
             </p>
             <div
               v-if="reservationStore.availabilityByRoomTypeId[room.roomTypeId]"

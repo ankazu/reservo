@@ -7,6 +7,7 @@ export type PropertyCatalog = {
 
 export type RoomTypeCatalogItem = {
   id: string
+  code: string
   propertyId: string
   name: string
   description: string

@@ -45,6 +45,7 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
     })
     await database.insert(schema.roomTypes).values({
       id: roomTypeId,
+      code: `expiration-${roomTypeId}`,
       propertyId,
       name: 'Expiration Test Room',
       description: 'Test room',
