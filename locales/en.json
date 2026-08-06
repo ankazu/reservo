@@ -139,6 +139,19 @@
       "CONFIRMED": "Reservation confirmed",
       "CANCELLED": "Reservation cancelled",
       "EXPIRED": "Hold expired"
+    },
+    "details": {
+      "eyebrow": "Your stay",
+      "title": "Reservation details",
+      "back": "Back to home",
+      "accessRequired": "Open the secure link you received when this reservation was created.",
+      "guests": "Guests",
+      "nights": "Nights",
+      "items": "Room details",
+      "quantity": "{count} room(s)",
+      "subtotal": "Subtotal",
+      "taxes": "Taxes",
+      "discounts": "Discounts"
     }
   },
   "footer": {

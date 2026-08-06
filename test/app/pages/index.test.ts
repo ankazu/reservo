@@ -217,7 +217,7 @@ describe('availability results', () => {
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
     }
     reservationStore.reservationAccessUrl =
-      '/#reservationId=reservation-1&accessToken=secret-token'
+      '/reservations/reservation-1#accessToken=secret-token'
     const wrapper = mount(IndexPage, {
       global: {
         components: {
@@ -230,7 +230,7 @@ describe('availability results', () => {
     await flushPromises()
 
     expect(writeText).toHaveBeenCalledWith(
-      'http://localhost:3000/#reservationId=reservation-1&accessToken=secret-token',
+      'http://localhost:3000/reservations/reservation-1#accessToken=secret-token',
     )
   })
 })

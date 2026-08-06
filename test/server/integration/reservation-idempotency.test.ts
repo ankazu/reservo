@@ -146,7 +146,9 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     reservationIds.push(created.id)
 
     expect(created.accessToken).toMatch(/^[A-Za-z0-9_-]{43}$/)
-    expect(created.accessUrl).toContain(`#reservationId=${created.id}`)
+    expect(created.accessUrl).toContain(
+      `/reservations/${created.id}#accessToken=`,
+    )
     expect(replayed).not.toHaveProperty('accessToken')
     expect(replayed).not.toHaveProperty('accessUrl')
 

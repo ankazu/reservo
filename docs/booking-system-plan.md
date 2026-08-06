@@ -4,9 +4,9 @@
 
 # Reservo 訂房系統 MVP 主計劃
 
-- 最後更新：2026-08-05
-- 目前階段：動態 property 與 room-type catalog 已完成，下一步建立受保護的訂房詳情頁
-- 唯一下一步：[Slice 5：受保護的訂房詳情頁](#slice-5受保護的訂房詳情頁)
+- 最後更新：2026-08-06
+- 目前階段：受保護的訂房詳情頁已完成，下一步建立最低限度庫存營運
+- 唯一下一步：[Slice 6：最低限度庫存營運](#slice-6最低限度庫存營運)
 
 ## 1. 目標與範圍
 
@@ -214,13 +214,14 @@ POST /api/internal/reservations/expire
 - Lookup 與 cancel 以 reservation ID＋Bearer token 授權，失敗一律不洩漏 reservation 或 PII
 - Confirm 與 expiration 僅保留 maintenance-secret 保護的 internal boundary
 - Read-only property／room-type catalog API 與動態首頁 catalog
+- 獨立受保護訂房詳情頁以 reservation ID route 加 fragment access token 載入，顯示 guest、日期、晚數、房型／rate-plan snapshot、quantity 與 TWD summary；loading、not-found、API error、expired、cancelled 均有對應 UI
 - Room type 使用不隨 database UUID／reseed 改變的 stable code 解析 locale messages
 - 多房型 availability 維持 client-side all-or-nothing aggregation
 - 未占用 inventory row 會在 availability／hold provisioning 時同步 Room 數量；已有 reserved／blocked 的 row 保留原 total
 
 ### 目前驗證證據
 
-- 2026-08-05：unit／component／route Vitest 98 passed；PostgreSQL integration suite 現有 12 tests，交由獨立 release gate 執行。
+- 2026-08-06：unit／component／route Vitest 100 passed；新增 reservation details page focused coverage。PostgreSQL integration suite 現有 12 tests，交由獨立 release gate 執行；本機未設定 `DATABASE_URL` 時會拒絕執行而非以 skipped 通過。
 - CI 使用 PostgreSQL 16 service，從空資料庫套用全部 migrations，並執行 format check、完整 typecheck、unit tests、integration tests 與 production build。
 - 完整 Nuxt typecheck 已在 CI release gate 執行；Playwright flow 與可重現的 production deployment verification 尚未完成。
 
@@ -329,7 +330,7 @@ POST /api/internal/reservations/expire
 
 ### Slice 5：受保護的訂房詳情頁
 
-優先級：P1；狀態：下一步；依賴 Slice 2。
+優先級：P1；狀態：✅ 完成（2026-08-06）；依賴 Slice 2。
 
 - 新增獨立 route，以 reservation ID 與 access token 載入。
 - 顯示 guest、日期、晚數、room-type snapshot、rate-plan snapshot、quantity 與 TWD summary。
@@ -338,9 +339,16 @@ POST /api/internal/reservations/expire
 
 完成條件：重新載入或分享正確安全連結仍能取得訂房；錯誤與終止狀態完整呈現。
 
+驗證證據：
+
+- 建立訂房回傳的 `accessUrl` 改為 `/reservations/:reservationId#accessToken=...`；reservation ID 不放在 token fragment，access token 仍不會進入 server request URL。
+- `app/pages/reservations/[reservationId].vue` 在 mounted 後從 fragment 取 token，以既有 API client／store 透過 Authorization header 載入詳情；缺少 token 或 lookup 失敗不顯示 reservation data。
+- 頁面 tests 覆蓋安全連結載入完整 summary、缺少 token、EXPIRED 終止狀態；既有 API、store、首頁與 unit suite 共 100 tests passed。
+- `format:check`、完整 `typecheck` 與 production `build` passed；PostgreSQL integration gate 需配置 `DATABASE_URL`，本機未配置因此明確拒絕執行。
+
 ### Slice 6：最低限度庫存營運
 
-優先級：P1；狀態：未開始；實作前記錄操作與授權邊界。
+優先級：P1；狀態：下一步；實作前記錄操作與授權邊界。
 
 - 提供查看指定日期 reserved／blocked／available 的方式。
 - 提供安全、可驗證的 block／unblock 操作。

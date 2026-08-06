@@ -88,7 +88,7 @@ export function createReservationsMock(scenario: MockScenario) {
         data: {
           ...reservation,
           accessToken,
-          accessUrl: `/#reservationId=${reservation.id}&accessToken=${accessToken}`,
+          accessUrl: `/reservations/${reservation.id}#accessToken=${accessToken}`,
         },
       }
     },

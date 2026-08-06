@@ -159,7 +159,7 @@ export async function createReservationHold(
       return {
         ...toReservationResponse(reservation),
         accessToken,
-        accessUrl: `/#reservationId=${reservation.id}&accessToken=${accessToken}`,
+        accessUrl: `/reservations/${reservation.id}#accessToken=${accessToken}`,
       }
     })
   } catch (error) {

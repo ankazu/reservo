@@ -139,6 +139,19 @@
       "CONFIRMED": "訂房已確認",
       "CANCELLED": "訂房已取消",
       "EXPIRED": "保留已過期"
+    },
+    "details": {
+      "eyebrow": "Your stay",
+      "title": "訂房詳情",
+      "back": "回到首頁",
+      "accessRequired": "請使用訂房建立時取得的安全連結重新開啟。",
+      "guests": "入住人數",
+      "nights": "住宿晚數",
+      "items": "房間明細",
+      "quantity": "{count} 間",
+      "subtotal": "房費小計",
+      "taxes": "稅金",
+      "discounts": "折扣"
     }
   },
   "footer": {
