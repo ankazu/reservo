@@ -228,7 +228,7 @@ PUT  /api/internal/inventory
 
 ### 目前驗證證據
 
-- 2026-08-06：unit／component／route Vitest 128 passed；完整 format check、Nuxt typecheck 與 production build passed。
+- 2026-08-06：unit／component／route Vitest 129 passed；完整 format check、Nuxt typecheck 與 production build passed。
 - CI 使用 PostgreSQL 16 service，從空資料庫套用全部 migrations，並執行 format check、完整 typecheck、unit tests、integration tests、Chromium Playwright flow 與 production build。
 - Playwright runner 已成功收集搜尋 → hold → 安全詳情 → confirm → cancel flow；本機 PostgreSQL 14 binary 因 Homebrew ICU dependency 缺失無法啟動，因此真實 browser flow 等待 PostgreSQL 16 CI gate 執行。
 

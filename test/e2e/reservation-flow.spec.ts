@@ -9,7 +9,9 @@ function formatDate(daysFromToday: number) {
 test('guest searches, holds, securely reloads, confirms, and cancels a reservation', async ({
   page,
 }) => {
-  await page.goto('/')
+  const response = await page.goto('/')
+  expect(response?.status()).toBe(200)
+  await expect(page.locator('[data-test="check-in"]')).toBeVisible()
   await page.getByTestId('check-in').fill(formatDate(7))
   await page.getByTestId('check-out').fill(formatDate(9))
   await page.getByTestId('guests').selectOption('2')
