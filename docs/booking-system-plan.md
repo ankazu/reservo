@@ -387,7 +387,7 @@ PUT  /api/internal/inventory
 驗證證據：
 
 - Availability、catalog、hold、secure lookup 與 cancel public routes 都有成功與穩定 HTTP error／`ApiResponse<T>` coverage。
-- Playwright Chromium flow 使用真實 UI 搜尋並建立 hold，從 fragment-token 安全詳情頁驗證狀態，再經 internal confirm 與 guest-authorized cancel 驗證 lifecycle；CI 已安裝 browser 並執行 `npm run test:e2e`。
+- CI 先 build，再由 Playwright 啟動 `.output/server/index.mjs`；production-artifact gate 驗證 `/api/health`、實際 expiration runner 的 completion／backlog report，以及真實 UI 搜尋 → hold → fragment-token 安全詳情 → internal confirm → guest-authorized cancel lifecycle。
 - `GET /api/health` 以 PostgreSQL query 驗證 readiness，database absent／unreachable 時回傳 503。
 - Expiration response 與 JSON logs 提供 `completedAt`、`expiredCount`、`backlogCount`；checked-in scheduler client 驗證 response、最多重試三次並在耗盡後 non-zero exit。
 - Focused tests 覆蓋 scheduler secret、成功 metadata、failure log、retry exhaustion 與 structured JSON；PostgreSQL integration coverage 驗證 expiration 前後 backlog。

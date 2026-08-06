@@ -25,9 +25,13 @@ npm run db:migrate
 npm run typecheck
 npm test
 npm run test:integration
-npm run test:e2e
 npm run build
+PLAYWRIGHT_USE_PRODUCTION=true npm run test:e2e
 ```
+
+The production-mode Playwright gate starts `.output/server/index.mjs`, verifies
+`GET /api/health`, runs the real expiration scheduler client against that process,
+and then exercises the browser reservation lifecycle.
 
 `db:migrate` is forward-only. Take a PostgreSQL backup before migration. If the
 application rollout fails after a compatible migration, restore the previous
@@ -35,7 +39,8 @@ application artifact and leave the migration applied. A destructive or
 backward-incompatible migration requires its own expand/contract ADR and rollback
 procedure before deployment.
 
-Start `.output/server/index.mjs`, then require `GET /api/health` to return HTTP 200
+For the deployed artifact, start `.output/server/index.mjs`, then require
+`GET /api/health` to return HTTP 200
 and `{ "success": true, "data": { "status": "ok", "database": "up" } }`
 before adding the instance to the load balancer. HTTP 503 means the instance is
 not ready and must receive no guest traffic.

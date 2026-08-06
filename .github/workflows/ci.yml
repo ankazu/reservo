@@ -62,11 +62,13 @@ jobs:
       - name: Run PostgreSQL integration tests
         run: npm run test:integration
 
+      - name: Build production application
+        run: npm run build
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright reservation flow
+      - name: Verify production artifact with Playwright
         run: npm run test:e2e
-
-      - name: Build production application
-        run: npm run build
+        env:
+          PLAYWRIGHT_USE_PRODUCTION: 'true'
