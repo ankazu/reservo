@@ -38,9 +38,6 @@ const statusMessage = computed(() => {
   const status = details.value?.status
   return status ? t(`reservation.status.${status}`) : ''
 })
-const canCancel = computed(() =>
-  ['PENDING_PAYMENT', 'CONFIRMED'].includes(details.value?.status ?? ''),
-)
 
 async function loadReservation() {
   const id = reservationId()
@@ -56,12 +53,6 @@ async function loadReservation() {
   }
   await reservationStore.getReservation(id, accessToken.value)
   hasLoaded.value = true
-}
-
-async function cancelReservation() {
-  const id = reservationId()
-  if (!id || !accessToken.value) return
-  await reservationStore.cancelReservation(id, accessToken.value)
 }
 
 onMounted(() => {
@@ -112,35 +103,10 @@ onMounted(() => {
 
       <div v-else-if="details" class="mt-8 space-y-6">
         <div class="border-l-2 border-clay bg-[#eeece5] p-6">
-          <div
-            class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
-          >
-            <div>
-              <p class="text-xl font-medium text-ink">{{ statusMessage }}</p>
-              <p class="mt-2 text-xs text-moss">
-                {{ t('reservation.idLabel') }}
-                <span class="font-mono text-ink">{{ details.id }}</span>
-              </p>
-            </div>
-            <button
-              v-if="canCancel"
-              type="button"
-              data-test="cancel-reservation"
-              class="border border-clay px-4 py-2 text-xs text-clay disabled:opacity-50"
-              :disabled="reservationStore.isLoading"
-              @click="cancelReservation"
-            >
-              {{ t('reservation.cancel') }}
-            </button>
-          </div>
-          <p
-            v-if="reservationStore.errorCode"
-            class="mt-4 text-xs text-clay"
-            role="alert"
-          >
-            {{
-              t(`errors.${reservationStore.errorCode}`, {}, t('errors.UNKNOWN'))
-            }}
+          <p class="text-xl font-medium text-ink">{{ statusMessage }}</p>
+          <p class="mt-2 text-xs text-moss">
+            {{ t('reservation.idLabel') }}
+            <span class="font-mono text-ink">{{ details.id }}</span>
           </p>
         </div>
 

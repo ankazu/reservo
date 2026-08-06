@@ -343,7 +343,7 @@ POST /api/internal/reservations/expire
 
 - 建立訂房回傳的 `accessUrl` 改為 `/reservations/:reservationId#accessToken=...`；reservation ID 不放在 token fragment，access token 仍不會進入 server request URL。
 - `app/pages/reservations/[reservationId].vue` 在 mounted 後從 fragment 取 token，以既有 API client／store 透過 Authorization header 載入詳情；缺少 token 或 lookup 失敗不顯示 reservation data。
-- 頁面 tests 覆蓋安全連結載入完整 summary、缺少 token、EXPIRED 終止狀態；既有 API、store、首頁與 unit suite 共 100 tests passed。
+- 頁面 tests 覆蓋安全連結載入完整 summary、loading、缺少或無效 token、API error、EXPIRED 與 CANCELLED 終止狀態；詳情頁僅呈現資料與狀態，不提供取消操作；既有 API、store、首頁與 unit suite 共 105 tests passed。
 - `format:check`、完整 `typecheck` 與 production `build` passed；PostgreSQL integration gate 需配置 `DATABASE_URL`，本機未配置因此明確拒絕執行。
 
 ### Slice 6：最低限度庫存營運
