@@ -247,6 +247,7 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
 
   it('syncs unoccupied inventory after rooms change and preserves occupied rows', async () => {
     const secondRoomId = crypto.randomUUID()
+    const stayDates = [checkInDate, '2099-01-02']
     await database.insert(schema.rooms).values({
       id: secondRoomId,
       roomTypeId,
@@ -257,7 +258,12 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     let inventory = await database
       .select()
       .from(schema.roomInventory)
-      .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
+      .where(
+        and(
+          eq(schema.roomInventory.roomTypeId, roomTypeId),
+          inArray(schema.roomInventory.stayDate, stayDates),
+        ),
+      )
     expect(inventory.every((row) => row.totalQuantity === 2)).toBe(true)
 
     await database
@@ -270,7 +276,12 @@ describeIntegration('reservation idempotency PostgreSQL integration', () => {
     inventory = await database
       .select()
       .from(schema.roomInventory)
-      .where(eq(schema.roomInventory.roomTypeId, roomTypeId))
+      .where(
+        and(
+          eq(schema.roomInventory.roomTypeId, roomTypeId),
+          inArray(schema.roomInventory.stayDate, stayDates),
+        ),
+      )
     expect(inventory.find((row) => row.id === inventoryId)?.totalQuantity).toBe(
       2,
     )
