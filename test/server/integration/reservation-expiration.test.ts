@@ -116,17 +116,19 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       totalAmount: 2,
       cancellableUntil: new Date('2099-03-31T16:00:00.000Z'),
     })
+    // Keep the expiration sweep before normally created holds so parallel test
+    // files sharing this database cannot become candidates for this worker run.
     await database
       .update(schema.reservations)
-      .set({ expiresAt: new Date('2099-01-01T00:00:00Z') })
+      .set({ expiresAt: new Date('2000-01-01T00:00:00Z') })
       .where(eq(schema.reservations.id, reservation.id))
 
     const results = await Promise.all([
       expireReservations(database, {
-        now: new Date('2099-01-02T00:00:00Z'),
+        now: new Date('2000-01-02T00:00:00Z'),
       }),
       expireReservations(database, {
-        now: new Date('2099-01-02T00:00:00Z'),
+        now: new Date('2000-01-02T00:00:00Z'),
       }),
     ])
 
@@ -151,7 +153,7 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
     expect(inventory.every((row) => row.reservedQuantity === 0)).toBe(true)
 
     const rerun = await expireReservations(database, {
-      now: new Date('2099-01-03T00:00:00Z'),
+      now: new Date('2000-01-03T00:00:00Z'),
     })
     expect(rerun).toHaveLength(0)
   })
