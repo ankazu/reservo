@@ -175,10 +175,14 @@ docs/                 主計劃、ADR 與 operation runbooks
 
 Production 必須定期呼叫受 secret 保護的 expiration endpoint，釋放逾時 hold 的庫存。設定方式與操作限制見 [Reservation expiration maintenance](docs/maintenance-expiration.md)。
 
+## Deployment health
+
+`GET /api/health` 會驗證 application 的 PostgreSQL readiness。Migration、release verification、scheduler retry、structured logs 與 alerts 見 [Production deployment](docs/deployment.md)。
+
 ## Inventory operations
 
 住宿方可透過相同 maintenance-secret boundary 查詢每日 `reserved`／`blocked`／`available`，並以可重試的絕對數量 block 或 unblock 庫存。請依 [Inventory maintenance](docs/maintenance-inventory.md) 操作與驗證；不需要直接修改 database table。
 
 ## 目前限制
 
-這是 guest-checkout MVP，目前不包含會員系統、真正 payment provider、Redis、多住宿場所、多幣別、複雜優惠或完整 admin platform。公開部署前仍需完成主計劃列出的 E2E 與營運驗證 slice。
+這是 guest-checkout MVP，目前不包含會員系統、真正 payment provider、Redis、多住宿場所、多幣別、複雜優惠或完整 admin platform。公開部署前仍需完成主計劃列出的 PostgreSQL 16 E2E release gate 與 production scheduler／alerts deployment verification。

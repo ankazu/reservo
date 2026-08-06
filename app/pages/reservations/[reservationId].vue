@@ -101,7 +101,12 @@ onMounted(() => {
         </p>
       </div>
 
-      <div v-else-if="details" class="mt-8 space-y-6">
+      <div
+        v-else-if="details"
+        class="mt-8 space-y-6"
+        data-test="reservation-details"
+        :data-status="details.status"
+      >
         <div class="border-l-2 border-clay bg-[#eeece5] p-6">
           <p class="text-xl font-medium text-ink">{{ statusMessage }}</p>
           <p class="mt-2 text-xs text-moss">

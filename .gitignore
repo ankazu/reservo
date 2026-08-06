@@ -32,4 +32,5 @@ docs/*
 !docs/adr/*.md
 !docs/maintenance-expiration.md
 !docs/maintenance-inventory.md
+!docs/deployment.md
 .agents

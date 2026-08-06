@@ -6,6 +6,7 @@ import { getReservationRequestFingerprint } from '../../../shared/utils/reservat
 import { createReservationHold } from '../../../server/services/reservation/create-hold'
 import {
   expireReservations,
+  getExpirationBacklog,
   transitionReservation,
 } from '../../../server/services/reservation/transition'
 import { db } from '../../../server/utils/db'
@@ -123,6 +124,10 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       .set({ expiresAt: new Date('2000-01-01T00:00:00Z') })
       .where(eq(schema.reservations.id, reservation.id))
 
+    await expect(
+      getExpirationBacklog(database, new Date('2000-01-02T00:00:00Z')),
+    ).resolves.toBe(1)
+
     const results = await Promise.all([
       expireReservations(database, {
         now: new Date('2000-01-02T00:00:00Z'),
@@ -156,6 +161,9 @@ describeIntegration('reservation expiration PostgreSQL integration', () => {
       now: new Date('2000-01-03T00:00:00Z'),
     })
     expect(rerun).toHaveLength(0)
+    await expect(
+      getExpirationBacklog(database, new Date('2000-01-03T00:00:00Z')),
+    ).resolves.toBe(0)
   })
 
   it('releases inventory exactly once when a hold is cancelled', async () => {

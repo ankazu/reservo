@@ -1,5 +1,6 @@
 import type { ReservationStatus } from '../../../shared/types/reservation'
 import {
+  countExpiredReservationBacklog,
   findReservationItems,
   lockExpiredReservations,
   lockInventoryForStay,
@@ -89,6 +90,13 @@ export async function expireReservations(
     }
     return expired
   })
+}
+
+export async function getExpirationBacklog(
+  database: Database,
+  now = new Date(),
+) {
+  return database.transaction((tx) => countExpiredReservationBacklog(tx, now))
 }
 
 async function transitionReservationInTransaction(

@@ -34,11 +34,13 @@ describe('GET /api/property', () => {
       currency: 'TWD',
     }
     state.getPropertyCatalog.mockResolvedValue(property)
+    const event: { status?: number } = {}
 
-    await expect(handler({} as never)).resolves.toEqual({
+    await expect(handler(event as never)).resolves.toEqual({
       success: true,
       data: property,
     })
+    expect(event.status).toBeUndefined()
     expect(state.getPropertyCatalog).toHaveBeenCalledWith({})
   })
 

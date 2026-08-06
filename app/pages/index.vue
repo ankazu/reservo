@@ -407,6 +407,7 @@ async function lookupReservation() {
               <span>{{ t('rooms.guests', { count: room.maxGuests }) }}</span>
             </div>
             <button
+              :data-test="`choose-room-${room.code}`"
               class="pt-5 text-xs text-clay hover:underline"
               type="button"
               :disabled="
@@ -481,6 +482,7 @@ async function lookupReservation() {
           {{ t('reservation.name') }}
           <input
             v-model="guestName"
+            data-test="guest-name"
             required
             autocomplete="name"
             class="border-b border-stone-300 bg-transparent p-2 text-sm text-ink outline-none"
@@ -490,6 +492,7 @@ async function lookupReservation() {
           {{ t('reservation.email') }}
           <input
             v-model="guestEmail"
+            data-test="guest-email"
             type="email"
             required
             autocomplete="email"
@@ -497,6 +500,7 @@ async function lookupReservation() {
           />
         </label>
         <button
+          data-test="create-hold"
           type="submit"
           class="bg-clay px-5 py-3 text-white"
           :disabled="reservationStore.isLoading"
@@ -517,6 +521,8 @@ async function lookupReservation() {
       </form>
       <div
         v-if="reservationStore.currentReservation"
+        data-test="current-reservation"
+        :data-status="reservationStore.currentReservation.status"
         class="mt-4 flex flex-col gap-3 border-l-2 border-clay bg-[#eeece5] p-4 text-sm text-moss md:flex-row md:items-center md:justify-between"
         role="status"
       >
@@ -555,6 +561,7 @@ async function lookupReservation() {
           >
             <input
               :value="secureReservationUrl"
+              data-test="reservation-access-url"
               readonly
               class="w-full border border-stone-300 bg-white p-2 font-mono text-[11px] text-ink"
               :aria-label="t('reservation.accessLink')"

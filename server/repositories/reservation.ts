@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
+import { and, count, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { NodePgTransaction } from 'drizzle-orm/node-postgres'
 
@@ -187,6 +187,22 @@ export async function lockExpiredReservations(
     .orderBy(schema.reservations.expiresAt)
     .limit(limit)
     .for('update', { skipLocked: true })
+}
+
+export async function countExpiredReservationBacklog(
+  tx: Transaction,
+  now: Date,
+) {
+  const rows = await tx
+    .select({ value: count() })
+    .from(schema.reservations)
+    .where(
+      and(
+        eq(schema.reservations.status, 'PENDING_PAYMENT'),
+        lte(schema.reservations.expiresAt, now),
+      ),
+    )
+  return rows[0]?.value ?? 0
 }
 
 export async function findReservationItems(

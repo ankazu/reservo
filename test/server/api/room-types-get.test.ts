@@ -39,20 +39,24 @@ describe('GET /api/room-types', () => {
       },
     ]
     state.getConfiguredRoomTypeCatalog.mockResolvedValue(roomTypes)
+    const event: { status?: number } = {}
 
-    await expect(handler({} as never)).resolves.toEqual({
+    await expect(handler(event as never)).resolves.toEqual({
       success: true,
       data: roomTypes,
     })
+    expect(event.status).toBeUndefined()
   })
 
   it('returns an empty catalog when the property has no room types', async () => {
     state.getConfiguredRoomTypeCatalog.mockResolvedValue([])
+    const event: { status?: number } = {}
 
-    await expect(handler({} as never)).resolves.toEqual({
+    await expect(handler(event as never)).resolves.toEqual({
       success: true,
       data: [],
     })
+    expect(event.status).toBeUndefined()
   })
 
   it('returns 404 when no property is configured', async () => {

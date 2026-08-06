@@ -5,7 +5,7 @@
 # Reservo 訂房系統 MVP 主計劃
 
 - 最後更新：2026-08-06
-- 目前階段：最低限度庫存營運已完成，下一步補齊 API、E2E 與營運驗證
+- 目前階段：Slice 7 實作已完成，等待 PostgreSQL 16 CI E2E 與 production scheduler deployment verification
 - 唯一下一步：[Slice 7：API、E2E 與營運驗證](#slice-7apie2e-與營運驗證)
 
 ## 1. 目標與範圍
@@ -175,6 +175,7 @@ External input 使用 Zod。API error code 與 message 保持 language-neutral�
 
 ```text
 GET  /api/availability
+GET  /api/health
 GET  /api/property
 GET  /api/room-types
 POST /api/reservations
@@ -221,12 +222,15 @@ PUT  /api/internal/inventory
 - 多房型 availability 維持 client-side all-or-nothing aggregation
 - 未占用 inventory row 會在 availability／hold provisioning 時同步 Room 數量；已有 reserved／blocked 的 row 保留原 total
 - Maintenance-secret 保護的每日庫存查詢與 absolute block／unblock 操作；與 reservation hold 共用 row lock 並拒絕 `reserved + blocked > total`
+- Public API status／`ApiResponse<T>` contract coverage、Playwright 核心訂房 flow 與 CI Chromium gate
+- PostgreSQL readiness health endpoint、可重試 expiration runner、completion／backlog metrics 與 structured operational events
+- Migration、deployment、health、scheduler 與 alert runbook
 
 ### 目前驗證證據
 
-- 2026-08-06：unit／component／route Vitest 114 passed；新增 inventory operations route／service focused coverage。PostgreSQL integration suite 新增 block／unblock verification 與 hold 併發 invariant coverage，交由獨立 release gate 執行；本機未設定 `DATABASE_URL` 時會拒絕執行而非以 skipped 通過。
-- CI 使用 PostgreSQL 16 service，從空資料庫套用全部 migrations，並執行 format check、完整 typecheck、unit tests、integration tests 與 production build。
-- 完整 Nuxt typecheck 已在 CI release gate 執行；Playwright flow 與可重現的 production deployment verification 尚未完成。
+- 2026-08-06：unit／component／route Vitest 128 passed；完整 format check、Nuxt typecheck 與 production build passed。
+- CI 使用 PostgreSQL 16 service，從空資料庫套用全部 migrations，並執行 format check、完整 typecheck、unit tests、integration tests、Chromium Playwright flow 與 production build。
+- Playwright runner 已成功收集搜尋 → hold → 安全詳情 → confirm → cancel flow；本機 PostgreSQL 14 binary 因 Homebrew ICU dependency 缺失無法啟動，因此真實 browser flow 等待 PostgreSQL 16 CI gate 執行。
 
 ## 6. 未完成需求與執行順序
 
@@ -370,7 +374,7 @@ PUT  /api/internal/inventory
 
 ### Slice 7：API、E2E 與營運驗證
 
-優先級：P1；狀態：下一步。
+優先級：P1；狀態：實作完成，待 release／deployment verification。
 
 - 補齊所有 public routes 的 HTTP status 與 `ApiResponse<T>` tests。
 - Playwright：搜尋 → hold → 安全詳情頁 → confirm／cancel。
@@ -379,6 +383,15 @@ PUT  /api/internal/inventory
 - 監控 scheduler 最後成功時間、每次 expired 數量與 backlog。
 
 完成條件：核心流程能在接近 production 的環境自動驗證，部署後能察覺 database、migration 或 expiration scheduler 失效。
+
+驗證證據：
+
+- Availability、catalog、hold、secure lookup 與 cancel public routes 都有成功與穩定 HTTP error／`ApiResponse<T>` coverage。
+- Playwright Chromium flow 使用真實 UI 搜尋並建立 hold，從 fragment-token 安全詳情頁驗證狀態，再經 internal confirm 與 guest-authorized cancel 驗證 lifecycle；CI 已安裝 browser 並執行 `npm run test:e2e`。
+- `GET /api/health` 以 PostgreSQL query 驗證 readiness，database absent／unreachable 時回傳 503。
+- Expiration response 與 JSON logs 提供 `completedAt`、`expiredCount`、`backlogCount`；checked-in scheduler client 驗證 response、最多重試三次並在耗盡後 non-zero exit。
+- Focused tests 覆蓋 scheduler secret、成功 metadata、failure log、retry exhaustion 與 structured JSON；PostgreSQL integration coverage 驗證 expiration 前後 backlog。
+- [Production deployment](deployment.md) 記錄 migration、health、scheduler、post-deploy verification 與 alert thresholds；production 實際 scheduler／alerts 仍需依 runbook 部署驗證。
 
 ### P2：完成公開 MVP 前評估
 

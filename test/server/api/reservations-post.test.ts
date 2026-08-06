@@ -6,6 +6,11 @@ const state = vi.hoisted(() => ({
   ip: '203.0.113.10',
   ipSequence: 10,
   createReservationHold: vi.fn(),
+  ReservationServiceError: class ReservationServiceError extends Error {
+    constructor(readonly code: string) {
+      super(code)
+    }
+  },
 }))
 
 vi.mock('h3', () => ({
@@ -29,7 +34,7 @@ vi.mock('h3', () => ({
 
 vi.mock('../../../server/services/reservation/create-hold', () => ({
   createReservationHold: state.createReservationHold,
-  ReservationServiceError: class ReservationServiceError extends Error {},
+  ReservationServiceError: state.ReservationServiceError,
 }))
 
 vi.mock('../../../server/utils/db', () => state)
@@ -167,11 +172,86 @@ describe('POST /api/reservations request guards', () => {
     })
 
     for (let attempt = 0; attempt < 6; attempt += 1) {
-      await expect(handler(event() as never)).resolves.toMatchObject({
+      const requestEvent = event()
+      await expect(handler(requestEvent as never)).resolves.toMatchObject({
         success: true,
         data: { id: 'reservation-1' },
       })
+      expect(requestEvent.status).toBeUndefined()
     }
     expect(state.createReservationHold).toHaveBeenCalledTimes(6)
+  })
+
+  it('returns stable required-header and database-unavailable responses', async () => {
+    const missingKey: Event = { headers: {} }
+    await expect(handler(missingKey as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'IDEMPOTENCY_KEY_REQUIRED' },
+    })
+    expect(missingKey.status).toBe(400)
+
+    const missingFingerprint: Event = {
+      headers: { 'idempotency-key': 'request-missing-fingerprint' },
+    }
+    await expect(handler(missingFingerprint as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'REQUEST_FINGERPRINT_REQUIRED' },
+    })
+    expect(missingFingerprint.status).toBe(400)
+
+    state.db = undefined
+    state.body = '{}'
+    const unavailable: Event = {
+      headers: {
+        'idempotency-key': 'request-database-unavailable',
+        'x-request-fingerprint': 'fingerprint',
+      },
+    }
+    await expect(handler(unavailable as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'DATABASE_UNAVAILABLE' },
+    })
+    expect(unavailable.status).toBe(503)
+  })
+
+  it('maps domain conflicts and unknown failures to stable ApiResponses', async () => {
+    const input = {
+      propertyId: '11111111-1111-4111-8111-111111111111',
+      roomTypeId: '22222222-2222-4222-8222-222222222222',
+      checkInDate: '2026-08-10',
+      checkOutDate: '2026-08-12',
+      quantity: 1,
+      guests: 1,
+      guestName: 'Guest',
+      guestEmail: 'guest@example.com',
+      ratePlanName: 'Standard',
+    } as const
+    state.body = JSON.stringify(input)
+    const event = (): Event => ({
+      headers: {
+        'idempotency-key': `failure-${++state.ipSequence}`,
+        'x-request-fingerprint': JSON.stringify(input),
+      },
+    })
+
+    state.createReservationHold.mockRejectedValueOnce(
+      new state.ReservationServiceError('INSUFFICIENT_INVENTORY'),
+    )
+    const conflict = event()
+    await expect(handler(conflict as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'INSUFFICIENT_INVENTORY' },
+    })
+    expect(conflict.status).toBe(409)
+
+    state.createReservationHold.mockRejectedValueOnce(
+      new Error('database failure'),
+    )
+    const failed = event()
+    await expect(handler(failed as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'RESERVATION_FAILED' },
+    })
+    expect(failed.status).toBe(500)
   })
 })

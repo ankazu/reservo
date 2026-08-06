@@ -57,6 +57,7 @@ describe('POST /api/reservations/:reservationId/cancel', () => {
       success: true,
       data: { status: 'CANCELLED' },
     })
+    expect(event.status).toBeUndefined()
     expect(state.cancelReservation).toHaveBeenCalledWith(
       {},
       reservationId,
@@ -98,5 +99,53 @@ describe('POST /api/reservations/:reservationId/cancel', () => {
       error: { code: 'RESERVATION_NOT_FOUND' },
     })
     expect(event.status).toBe(404)
+  })
+
+  it('returns stable validation, database, conflict, and failure responses', async () => {
+    const invalid: Event = {
+      params: { reservationId: 'invalid' },
+      headers: { authorization: `Bearer ${accessToken}` },
+    }
+    await expect(handler(invalid as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'INVALID_RESERVATION_ID' },
+    })
+    expect(invalid.status).toBe(400)
+
+    state.db = undefined
+    const unavailable: Event = {
+      params: { reservationId },
+      headers: { authorization: `Bearer ${accessToken}` },
+    }
+    await expect(handler(unavailable as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'DATABASE_UNAVAILABLE' },
+    })
+    expect(unavailable.status).toBe(503)
+
+    state.db = {}
+    state.cancelReservation.mockRejectedValueOnce(
+      new state.ReservationTransitionError('INVALID_STATUS_TRANSITION'),
+    )
+    const conflict: Event = {
+      params: { reservationId },
+      headers: { authorization: `Bearer ${accessToken}` },
+    }
+    await expect(handler(conflict as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'INVALID_STATUS_TRANSITION' },
+    })
+    expect(conflict.status).toBe(409)
+
+    state.cancelReservation.mockRejectedValueOnce(new Error('database failure'))
+    const failed: Event = {
+      params: { reservationId },
+      headers: { authorization: `Bearer ${accessToken}` },
+    }
+    await expect(handler(failed as never)).resolves.toMatchObject({
+      success: false,
+      error: { code: 'RESERVATION_TRANSITION_FAILED' },
+    })
+    expect(failed.status).toBe(500)
   })
 })
