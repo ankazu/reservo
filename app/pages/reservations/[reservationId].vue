@@ -5,7 +5,7 @@ const reservationStore = useReservationStore()
 const accessToken = ref('')
 const hasLoaded = ref(false)
 
-function reservationId() {
+function getRouteReservationId() {
   const value = route.params.reservationId
   return Array.isArray(value) ? (value[0] ?? '') : value
 }
@@ -40,7 +40,7 @@ const statusMessage = computed(() => {
 })
 
 async function loadReservation() {
-  const id = reservationId()
+  const id = getRouteReservationId()
   const token = new URLSearchParams(window.location.hash.slice(1)).get(
     'accessToken',
   )
