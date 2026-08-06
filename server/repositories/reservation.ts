@@ -234,6 +234,28 @@ export async function releaseInventory(
   return rows.length === 1
 }
 
+export async function setBlockedInventoryQuantity(
+  tx: Transaction,
+  inventoryId: string,
+  blockedQuantity: number,
+) {
+  const rows = await tx
+    .update(schema.roomInventory)
+    .set({ blockedQuantity })
+    .where(
+      and(
+        eq(schema.roomInventory.id, inventoryId),
+        gte(
+          sql`${schema.roomInventory.totalQuantity} - ${schema.roomInventory.reservedQuantity}`,
+          blockedQuantity,
+        ),
+      ),
+    )
+    .returning()
+
+  return rows[0]
+}
+
 export async function updateReservationStatus(
   tx: Transaction,
   reservationId: string,

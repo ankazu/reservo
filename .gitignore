@@ -31,4 +31,5 @@ docs/*
 !docs/adr/
 !docs/adr/*.md
 !docs/maintenance-expiration.md
+!docs/maintenance-inventory.md
 .agents

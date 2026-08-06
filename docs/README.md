@@ -22,6 +22,8 @@
 | 修改 reservation idempotency 或 legacy migration                 | [ADR 0002](adr/0002-idempotency-fingerprint-legacy.md)     |
 | 修改多房型 availability aggregation、partial results 或 retry UX | [ADR 0003](adr/0003-availability-search-failure-policy.md) |
 | 部署或維護 reservation expiration scheduler                      | [Expiration maintenance](maintenance-expiration.md)        |
+| 查詢、block 或 unblock 每日庫存                                  | [Inventory maintenance](maintenance-inventory.md)          |
+| 修改庫存營運授權、鎖定或 absolute quantity 契約                  | [ADR 0005](adr/0005-inventory-operations-boundary.md)      |
 
 只讀與當前工作直接相關的文件。ADR 是已接受的決策，不是一般 backlog；若實作需要推翻 ADR，先新增或取代 ADR，再修改程式。
 

@@ -5,8 +5,8 @@
 # Reservo 訂房系統 MVP 主計劃
 
 - 最後更新：2026-08-06
-- 目前階段：受保護的訂房詳情頁已完成，下一步建立最低限度庫存營運
-- 唯一下一步：[Slice 6：最低限度庫存營運](#slice-6最低限度庫存營運)
+- 目前階段：最低限度庫存營運已完成，下一步補齊 API、E2E 與營運驗證
+- 唯一下一步：[Slice 7：API、E2E 與營運驗證](#slice-7apie2e-與營運驗證)
 
 ## 1. 目標與範圍
 
@@ -182,6 +182,8 @@ GET  /api/reservations/:reservationId
 POST /api/reservations/:reservationId/cancel
 POST /api/internal/reservations/:reservationId/confirm
 POST /api/internal/reservations/expire
+GET  /api/internal/inventory
+PUT  /api/internal/inventory
 ```
 
 首頁從 catalog routes 動態取得 property 與 room types，並依 ADR 0003
@@ -218,10 +220,11 @@ POST /api/internal/reservations/expire
 - Room type 使用不隨 database UUID／reseed 改變的 stable code 解析 locale messages
 - 多房型 availability 維持 client-side all-or-nothing aggregation
 - 未占用 inventory row 會在 availability／hold provisioning 時同步 Room 數量；已有 reserved／blocked 的 row 保留原 total
+- Maintenance-secret 保護的每日庫存查詢與 absolute block／unblock 操作；與 reservation hold 共用 row lock 並拒絕 `reserved + blocked > total`
 
 ### 目前驗證證據
 
-- 2026-08-06：unit／component／route Vitest 100 passed；新增 reservation details page focused coverage。PostgreSQL integration suite 現有 12 tests，交由獨立 release gate 執行；本機未設定 `DATABASE_URL` 時會拒絕執行而非以 skipped 通過。
+- 2026-08-06：unit／component／route Vitest 114 passed；新增 inventory operations route／service focused coverage。PostgreSQL integration suite 新增 block／unblock verification 與 hold 併發 invariant coverage，交由獨立 release gate 執行；本機未設定 `DATABASE_URL` 時會拒絕執行而非以 skipped 通過。
 - CI 使用 PostgreSQL 16 service，從空資料庫套用全部 migrations，並執行 format check、完整 typecheck、unit tests、integration tests 與 production build。
 - 完整 Nuxt typecheck 已在 CI release gate 執行；Playwright flow 與可重現的 production deployment verification 尚未完成。
 
@@ -348,7 +351,7 @@ POST /api/internal/reservations/expire
 
 ### Slice 6：最低限度庫存營運
 
-優先級：P1；狀態：下一步；實作前記錄操作與授權邊界。
+優先級：P1；狀態：✅ 完成（2026-08-06）；操作與授權邊界見 [ADR 0005](adr/0005-inventory-operations-boundary.md)。
 
 - 提供查看指定日期 reserved／blocked／available 的方式。
 - 提供安全、可驗證的 block／unblock 操作。
@@ -357,9 +360,17 @@ POST /api/internal/reservations/expire
 
 完成條件：住宿方能在不直接手改資料表的情況下處理維修、停售與恢復庫存。
 
+驗證證據：
+
+- `GET /api/internal/inventory` 以 room type 與半開日期範圍回傳每日 total、reserved、blocked 與 available；單次最多 30 日。
+- `PUT /api/internal/inventory` 以 absolute blocked quantity 提供可安全重試的 block／unblock；設為 0 即恢復庫存。
+- 兩個 endpoints 都使用既有 `X-Maintenance-Secret` internal boundary；操作 runbook 見 [Inventory maintenance](maintenance-inventory.md)。
+- Service 在 transaction 內 provision 並 lock inventory row，拒絕 `reserved + blocked > total`；PostgreSQL integration test 覆蓋與 hold 併發時不得超過 total。
+- Focused schema／route／service tests、完整 typecheck、114 個 unit／component／route tests 與 production build passed；本機未設定 `DATABASE_URL`，integration command 依 release-gate 規則明確拒絕執行。
+
 ### Slice 7：API、E2E 與營運驗證
 
-優先級：P1；狀態：未開始。
+優先級：P1；狀態：下一步。
 
 - 補齊所有 public routes 的 HTTP status 與 `ApiResponse<T>` tests。
 - Playwright：搜尋 → hold → 安全詳情頁 → confirm／cancel。
@@ -386,7 +397,7 @@ POST /api/internal/reservations/expire
 - [ ] 相同 idempotency key 不建立重複訂房，不同 payload 被拒絕。
 - [ ] Cancellation 與 expiration 只釋放一次庫存。
 - [ ] 房型 catalog 不依賴前端硬編碼 database UUID。
-- [ ] 住宿方有最低限度的 inventory block／unblock 操作方式。
+- [x] 住宿方有最低限度的 inventory block／unblock 操作方式。
 - [ ] 所有 migrations 可從空資料庫成功執行。
 - [ ] PostgreSQL concurrency 與 lifecycle tests 在 CI 實際執行且通過。
 - [ ] 完整 typecheck、format check、tests 與 production build 通過。
