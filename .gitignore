@@ -34,3 +34,4 @@ docs/*
 !docs/maintenance-inventory.md
 !docs/deployment.md
 .agents
+test-results/
